@@ -8,14 +8,13 @@ import (
 )
 
 type Trainer struct {
-	model     *MBPE // TODO move to interface ?!
-	tokenizer interface{}
-	dict      map[string]*Chunk
+	model *MBPE
+	dict  map[string]*Chunk
 }
 
-func NewTrainer() *Trainer {
+func NewTrainer(n int) *Trainer {
 	return &Trainer{
-		model: NewMBPE(),
+		model: NewMBPE(n),
 		dict:  make(map[string]*Chunk),
 	}
 }
@@ -92,6 +91,11 @@ func (t *Trainer) Pairs(k int) [][2]string {
 	return result
 }
 
+func (t *Trainer) AddToken(left, right string) {
+	t.model.tokenizer.AddToken(left + right)
+	t.model.tokenizer.AddMerge(left, right)
+}
+
 func (t *Trainer) Merge(left, right string) {
 	// fmt.Printf("merging %s and %s\n", left, right)
 
@@ -104,11 +108,11 @@ func (t *Trainer) Merge(left, right string) {
 	}
 }
 
-func (t *Trainer) Train(name string, k int) error {
+func (t *Trainer) Train(name string) error {
 	// k number of merges
 	// base vocab is 256
 
-	// TODO track vocab
+	k := t.model.tokenizer.Size()
 
 	if err := t.Init(name); err != nil {
 		return err
@@ -121,9 +125,11 @@ func (t *Trainer) Train(name string, k int) error {
 			return nil
 		}
 
-		fmt.Println(pairs[0])
+		left, right := pairs[0][0], pairs[0][1]
 
-		t.Merge(pairs[0][0], pairs[0][1])
+		t.AddToken(left, right)
+
+		t.Merge(left, right)
 
 		fmt.Printf("%d\n", int(float64(i)/float64(k-256)*100))
 	}
