@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 )
@@ -38,6 +39,8 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(trainer.model.Tokenize("To infinity and beyond!"))
 }
 
 func toFile(name string, callback func(writer *bufio.Writer) error) error {

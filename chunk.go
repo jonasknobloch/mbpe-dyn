@@ -108,3 +108,13 @@ func (c *Chunk) MergePair(left, right string) {
 		}
 	}
 }
+
+func (c *Chunk) Tokens() []string {
+	r := make([]string, 0, len(c.bounds)-1)
+
+	for i := 0; i < len(c.bounds)-1; i++ {
+		r = append(r, c.src[c.bounds[i]:c.bounds[i+1]])
+	}
+
+	return r
+}

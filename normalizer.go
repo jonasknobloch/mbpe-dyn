@@ -1,13 +1,17 @@
 package main
 
-type Normalizer struct {
+type DefaultNormalizer struct {
 	//
 }
 
-// type Normalizer interface {
-// 	normalize(string) []string
-// }
+type Normalizer interface {
+	normalize(string) string
+}
 
-func NewNormalizer() *Normalizer {
-	return &Normalizer{}
+func NewDefaultNormalizer() *DefaultNormalizer {
+	return &DefaultNormalizer{}
+}
+
+func (n *DefaultNormalizer) normalize(phrase string) string {
+	return phrase
 }
