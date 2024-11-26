@@ -1,7 +1,5 @@
 package main
 
-import "strconv"
-
 type Tokenizer struct {
 	vocab  []string
 	atoi   map[string]int
@@ -23,8 +21,8 @@ func (t *Tokenizer) Size() int {
 }
 
 func (t *Tokenizer) Init() {
-	for i := range 256 {
-		t.AddToken(strconv.Itoa(i))
+	for _, c := range Alphabet() {
+		t.AddToken(c)
 	}
 }
 

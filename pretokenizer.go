@@ -35,5 +35,15 @@ func (p *RegexpPreTokenizer) preTokenize(phrase string) []string {
 		panic("could not match phrase")
 	}
 
+	for i, compound := range compounds {
+		r := ""
+
+		for _, b := range []byte(compound) {
+			r += BytesChar[b]
+		}
+
+		compounds[i] = r
+	}
+
 	return compounds
 }
