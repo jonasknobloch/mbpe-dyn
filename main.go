@@ -8,6 +8,31 @@ import (
 )
 
 func main() {
+	if _, err := os.Stat("temp.gob"); err != nil {
+		if os.IsNotExist(err) {
+			train()
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	tokenizer, err := DeserializeTokenizer("temp.gob")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	model := NewMBPE(5000)
+
+	model.tokenizer = tokenizer
+
+	tokens := model.Tokenize("To infinity and beyond!")
+
+	fmt.Println(tokens)
+	fmt.Println(tokenizer.ToString(tokens))
+}
+
+func train() {
 	trainer := NewTrainer(5000)
 
 	if err := trainer.Train("data/shakespeare.txt"); err != nil {
@@ -15,6 +40,10 @@ func main() {
 	}
 
 	tokenizer := trainer.model.tokenizer
+
+	if err := SerializeTokenizer(tokenizer, "temp.gob"); err != nil {
+		log.Fatal(err)
+	}
 
 	if err := toFile("vocab.txt", func(writer *bufio.Writer) error {
 		for _, token := range tokenizer.vocab {
@@ -39,11 +68,6 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-
-	tokens := trainer.model.Tokenize("To infinity and beyond!")
-
-	fmt.Println(tokens)
-	fmt.Println(tokenizer.ToString(tokens))
 }
 
 func toFile(name string, callback func(writer *bufio.Writer) error) error {
