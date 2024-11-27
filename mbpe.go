@@ -18,11 +18,11 @@ func NewMBPE(n int) *MBPE {
 	}
 }
 
-func (m *MBPE) Tokenize(phrase string) []string {
+func (m *MBPE) Tokenize(phrase string) []int {
 	phrase = m.normalizer.normalize(phrase)
 	chunks := m.preTokenizer.preTokenize(phrase)
 
-	r := make([]string, 0)
+	r := make([]int, 0)
 
 	for _, chunk := range chunks {
 		r = append(r, m.tokenizer.Tokenize(chunk)...)

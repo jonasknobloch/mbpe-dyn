@@ -39,7 +39,7 @@ func (t *Tokenizer) AddMerge(left, right string) {
 	t.merges = append(t.merges, [2]string{left, right})
 }
 
-func (t *Tokenizer) Tokenize(phrase string) []string {
+func (t *Tokenizer) Tokenize(phrase string) []int {
 	// pairs := make([]string, 0, len(chunk)-1)
 	//
 	// for i := 0; i < len(chunk)-1; i++ {
@@ -79,19 +79,33 @@ func (t *Tokenizer) Tokenize(phrase string) []string {
 
 	tokenize()
 
-	return c.Tokens()
+	r := make([]int, len(c.bounds)-1)
 
-	// r := make([]int, len(c.bounds)-1)
-	//
-	// for _, token := range c.Tokens() {
-	// 	idx, ok := t.atoi[token]
-	//
-	// 	if !ok {
-	// 		panic("unknown token")
-	// 	}
-	//
-	// 	r = append(r, idx)
-	// }
-	//
-	// return r
+	for i, token := range c.Tokens() {
+		idx, ok := t.atoi[token]
+
+		if !ok {
+			panic("unknown token")
+		}
+
+		r[i] = idx
+	}
+
+	return r
+}
+
+func (t *Tokenizer) ToString(tokens []int) []string {
+	r := make([]string, len(tokens))
+
+	for i, token := range tokens {
+		s, ok := t.itoa[token]
+
+		if !ok {
+			panic("unknown token")
+		}
+
+		r[i] = s
+	}
+
+	return r
 }

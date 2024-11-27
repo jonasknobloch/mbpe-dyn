@@ -40,7 +40,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(trainer.model.Tokenize("To infinity and beyond!"))
+	tokens := trainer.model.Tokenize("To infinity and beyond!")
+
+	fmt.Println(tokens)
+	fmt.Println(tokenizer.ToString(tokens))
 }
 
 func toFile(name string, callback func(writer *bufio.Writer) error) error {
