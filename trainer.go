@@ -151,6 +151,8 @@ func (t *Trainer) InitVocab() {
 		for _, token := range chunk.Tokens() {
 			if _, ok := tokens[token]; !ok {
 				tokens[token] = 0
+
+				// fmt.Printf("discovered new token %s %02x \n", token, []byte(token))
 			}
 
 			tokens[token]++

@@ -9,10 +9,12 @@ type Chunk struct {
 }
 
 func NewChunk(src string, n int, alpha float64) *Chunk {
-	bounds := make([]int, len(src)+1)
+	bounds := []int{0}
 
-	for i := range len(src) + 1 {
-		bounds[i] = i
+	for _, r := range src {
+		j := bounds[len(bounds)-1] + len(string(r))
+
+		bounds = append(bounds, j)
 	}
 
 	var morphs []int
