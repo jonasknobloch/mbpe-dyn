@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	stok "github.com/sugarme/tokenizer"
+	sbpe "github.com/sugarme/tokenizer/model/bpe"
+	spre "github.com/sugarme/tokenizer/pretokenizer"
 	"log"
 	"os"
 )
@@ -90,4 +93,47 @@ func toFile(name string, callback func(writer *bufio.Writer) error) error {
 	}
 
 	return nil
+}
+
+func trainReference() {
+	files := []string{
+		"data/shakespeare.txt",
+	}
+
+	var vocab = make(map[string]int)
+	var merges = make(map[sbpe.Pair]sbpe.PairVal)
+
+	model := sbpe.NewBPE(vocab, merges)
+
+	trainer := sbpe.NewBpeTrainer(0, 5000)
+
+	tokenizer := stok.NewTokenizer(model)
+
+	preTokenizer := spre.NewByteLevel()
+
+	preTokenizer.SetAddPrefixSpace(false)
+
+	tokenizer.WithPreTokenizer(preTokenizer)
+
+	if err := tokenizer.Train(trainer, files); err != nil {
+		log.Fatal(err)
+	}
+
+	result := tokenizer.GetModel()
+
+	if err := result.Save("reference"); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := toFile("reference/vocab.txt", func(writer *bufio.Writer) error {
+		for token := range result.GetVocab() {
+			if _, err := writer.WriteString(token + "\n"); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		log.Fatal(err)
+	}
 }

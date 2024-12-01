@@ -5,6 +5,7 @@ go 1.22
 require github.com/sugarme/tokenizer v0.2.2
 
 require (
+	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/schollz/progressbar/v2 v2.15.0 // indirect
