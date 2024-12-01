@@ -16,15 +16,19 @@ func NewTokenizer(n int) *Tokenizer {
 	}
 }
 
-func (t *Tokenizer) Size() int {
+func (t *Tokenizer) Len() int {
+	return len(t.vocab)
+}
+
+func (t *Tokenizer) Cap() int {
 	return cap(t.vocab)
 }
 
-func (t *Tokenizer) Init() {
-	for _, c := range Alphabet() {
-		t.AddToken(c)
-	}
-}
+// func (t *Tokenizer) Init() {
+// 	for _, c := range Alphabet() {
+// 		t.AddToken(c)
+// 	}
+// }
 
 func (t *Tokenizer) AddToken(token string) {
 	idx := len(t.vocab)

@@ -9,8 +9,6 @@ type MBPE struct {
 func NewMBPE(n int) *MBPE {
 	tokenizer := NewTokenizer(n)
 
-	tokenizer.Init()
-
 	return &MBPE{
 		normalizer:   NewDefaultNormalizer(),
 		preTokenizer: NewPreTokenizer(),

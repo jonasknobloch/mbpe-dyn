@@ -19,7 +19,7 @@ func NewTrainer(n int) *Trainer {
 	}
 }
 
-func (t *Trainer) Init(name string) error {
+func (t *Trainer) InitDict(name string) error {
 	file, err := os.Open(name)
 
 	if err != nil {
@@ -109,16 +109,15 @@ func (t *Trainer) Merge(left, right string) {
 }
 
 func (t *Trainer) Train(name string) error {
-	// k number of merges
-	// base vocab is 256
-
-	k := t.model.tokenizer.Size()
-
-	if err := t.Init(name); err != nil {
+	if err := t.InitDict(name); err != nil {
 		return err
 	}
 
-	for i := 0; i < k-256; i++ {
+	t.InitVocab()
+
+	k := t.model.tokenizer.Cap() - t.model.tokenizer.Len()
+
+	for i := 0; i < k; i++ {
 		pairs := t.Pairs(1)
 
 		if len(pairs) == 0 {
@@ -131,8 +130,36 @@ func (t *Trainer) Train(name string) error {
 
 		t.Merge(left, right)
 
-		fmt.Printf("%d\n", int(float64(i)/float64(k-256)*100))
+		fmt.Printf("%d\n", int(float64(i)/float64(k)*100))
 	}
 
 	return nil
+}
+
+func (t *Trainer) InitVocab() {
+	tokens := make(map[string]int)
+
+	// TODO side effects of byte replacements on strings.Split(..., "")
+
+	for _, chunk := range t.dict {
+		for _, token := range chunk.Tokens() {
+			if _, ok := tokens[token]; !ok {
+				tokens[token] = 0
+			}
+
+			tokens[token]++
+		}
+	}
+
+	alphabet := make([]string, 0, len(tokens))
+
+	for token := range tokens {
+		alphabet = append(alphabet, token)
+	}
+
+	sort.Strings(alphabet)
+
+	for _, token := range alphabet {
+		t.model.tokenizer.AddToken(token)
+	}
 }
