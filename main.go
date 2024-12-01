@@ -25,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	model := NewMBPE(5000)
+	model := NewMBPE()
 
 	model.tokenizer = tokenizer
 

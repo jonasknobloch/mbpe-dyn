@@ -8,14 +8,16 @@ import (
 )
 
 type Trainer struct {
-	model *MBPE
-	dict  map[string]*Chunk
+	vocabSize int
+	model     *MBPE
+	dict      map[string]*Chunk
 }
 
-func NewTrainer(n int) *Trainer {
+func NewTrainer(vocabSize int) *Trainer {
 	return &Trainer{
-		model: NewMBPE(n),
-		dict:  make(map[string]*Chunk),
+		vocabSize: vocabSize,
+		model:     NewMBPE(),
+		dict:      make(map[string]*Chunk),
 	}
 }
 
@@ -113,9 +115,13 @@ func (t *Trainer) Train(name string) error {
 		return err
 	}
 
+	t.model.tokenizer.InitVocab(t.vocabSize)
+
 	t.InitVocab()
 
 	k := t.model.tokenizer.Cap() - t.model.tokenizer.Len()
+
+	t.model.tokenizer.InitMerges(k)
 
 	for i := 0; i < k; i++ {
 		pairs := t.Pairs(1)

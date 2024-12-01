@@ -7,13 +7,19 @@ type Tokenizer struct {
 	merges [][2]string
 }
 
-func NewTokenizer(n int) *Tokenizer {
-	return &Tokenizer{
-		vocab:  make([]string, 0, n),
-		atoi:   make(map[string]int, n),
-		itoa:   make(map[int]string, n),
-		merges: make([][2]string, 0, n-256),
-	}
+func NewTokenizer() *Tokenizer {
+	return &Tokenizer{}
+}
+
+func (t *Tokenizer) InitVocab(n int) {
+	t.vocab = make([]string, 0, n)
+
+	t.atoi = make(map[string]int, n)
+	t.itoa = make(map[int]string, n)
+}
+
+func (t *Tokenizer) InitMerges(n int) {
+	t.merges = make([][2]string, 0, n)
 }
 
 func (t *Tokenizer) Len() int {

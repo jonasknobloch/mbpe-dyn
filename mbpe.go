@@ -6,13 +6,11 @@ type MBPE struct {
 	tokenizer    *Tokenizer
 }
 
-func NewMBPE(n int) *MBPE {
-	tokenizer := NewTokenizer(n)
-
+func NewMBPE() *MBPE {
 	return &MBPE{
 		normalizer:   NewDefaultNormalizer(),
 		preTokenizer: NewPreTokenizer(),
-		tokenizer:    tokenizer,
+		tokenizer:    NewTokenizer(),
 	}
 }
 
