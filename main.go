@@ -21,7 +21,7 @@ func tokenize() {
 		log.Fatal(err)
 	}
 
-	preTokenizer := NewByteLevel()
+	preTokenizer := NewByteLevel(true)
 
 	tokenizer := NewTokenizer(preTokenizer, model, nil)
 
@@ -34,7 +34,7 @@ func tokenize() {
 func train() {
 	model := NewMBPE()
 
-	preTokenizer := NewByteLevel()
+	preTokenizer := NewByteLevel(true)
 
 	trainer := NewMBPETrainer(preTokenizer, model, 5000)
 
@@ -62,8 +62,6 @@ func trainReference() {
 	tokenizer := stok.NewTokenizer(model)
 
 	preTokenizer := spre.NewByteLevel()
-
-	preTokenizer.SetAddPrefixSpace(false)
 
 	tokenizer.WithPreTokenizer(preTokenizer)
 

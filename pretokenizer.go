@@ -5,14 +5,15 @@ import (
 )
 
 type ByteLevel struct {
-	re *regexp.Regexp
+	addPrefixSpace bool
+	re             *regexp.Regexp
 }
 
 type PreTokenizer interface {
 	PreTokenize(string) []string
 }
 
-func NewByteLevel() *ByteLevel {
+func NewByteLevel(addPrefixSpace bool) *ByteLevel {
 	// r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 
 	// TODO work around for missing negative lookahead
@@ -20,16 +21,21 @@ func NewByteLevel() *ByteLevel {
 	re := regexp.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+`)
 
 	return &ByteLevel{
-		re: re,
+		addPrefixSpace: addPrefixSpace,
+		re:             re,
 	}
 }
 
 func (p *ByteLevel) PreTokenize(phrase string) []string {
-	compounds := p.re.FindAllString(phrase, -1)
-
 	if phrase == "" {
 		return []string{}
 	}
+
+	if p.addPrefixSpace && phrase[0] != ' ' {
+		phrase = " " + phrase
+	}
+
+	compounds := p.re.FindAllString(phrase, -1)
 
 	if compounds == nil {
 		panic("could not match phrase")
