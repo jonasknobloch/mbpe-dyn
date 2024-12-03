@@ -7,21 +7,23 @@ import (
 	"sort"
 )
 
-type Trainer struct {
-	vocabSize int
-	model     *MBPE
-	dict      map[string]*Chunk
+type MBPETrainer struct {
+	preTokenizer PreTokenizer
+	model        *MBPE
+	vocabSize    int
+	dict         map[string]*Chunk
 }
 
-func NewTrainer(vocabSize int) *Trainer {
-	return &Trainer{
-		vocabSize: vocabSize,
-		model:     NewMBPE(),
-		dict:      make(map[string]*Chunk),
+func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, vocabSize int) *MBPETrainer {
+	return &MBPETrainer{
+		preTokenizer: preTokenizer,
+		model:        model,
+		vocabSize:    vocabSize,
+		dict:         make(map[string]*Chunk),
 	}
 }
 
-func (t *Trainer) InitDict(name string) error {
+func (t *MBPETrainer) InitDict(name string) error {
 	file, err := os.Open(name)
 
 	if err != nil {
@@ -39,7 +41,7 @@ func (t *Trainer) InitDict(name string) error {
 			return err
 		}
 
-		compounds := t.model.preTokenizer.preTokenize(line)
+		compounds := t.preTokenizer.PreTokenize(line)
 
 		for _, compound := range compounds {
 			if _, ok := t.dict[compound]; !ok {
@@ -53,7 +55,7 @@ func (t *Trainer) InitDict(name string) error {
 	return nil
 }
 
-func (t *Trainer) Pairs(k int) [][2]string {
+func (t *MBPETrainer) Pairs(k int) [][2]string {
 	pairs := make(map[[2]string]float64)
 
 	for _, compound := range t.dict {
@@ -93,12 +95,12 @@ func (t *Trainer) Pairs(k int) [][2]string {
 	return result
 }
 
-func (t *Trainer) AddToken(left, right string) {
-	t.model.tokenizer.AddToken(left + right)
-	t.model.tokenizer.AddMerge(left, right)
+func (t *MBPETrainer) AddToken(left, right string) {
+	t.model.AddToken(left + right)
+	t.model.AddMerge(left, right)
 }
 
-func (t *Trainer) Merge(left, right string) {
+func (t *MBPETrainer) Merge(left, right string) {
 	// fmt.Printf("merging %s and %s\n", left, right)
 
 	for _, compound := range t.dict {
@@ -110,18 +112,18 @@ func (t *Trainer) Merge(left, right string) {
 	}
 }
 
-func (t *Trainer) Train(name string) error {
+func (t *MBPETrainer) Train(name string) error {
 	if err := t.InitDict(name); err != nil {
 		return err
 	}
 
-	t.model.tokenizer.InitVocab(t.vocabSize)
+	t.model.InitVocab(t.vocabSize)
 
 	t.InitVocab()
 
-	k := t.model.tokenizer.Cap() - t.model.tokenizer.Len()
+	k := t.model.Cap() - t.model.Len()
 
-	t.model.tokenizer.InitMerges(k)
+	t.model.InitMerges(k)
 
 	for i := 0; i < k; i++ {
 		pairs := t.Pairs(1)
@@ -142,7 +144,7 @@ func (t *Trainer) Train(name string) error {
 	return nil
 }
 
-func (t *Trainer) InitVocab() {
+func (t *MBPETrainer) InitVocab() {
 	tokens := make(map[string]int)
 
 	// TODO side effects of byte replacements on strings.Split(..., "")
@@ -168,6 +170,6 @@ func (t *Trainer) InitVocab() {
 	sort.Strings(alphabet)
 
 	for _, token := range alphabet {
-		t.model.tokenizer.AddToken(token)
+		t.model.AddToken(token)
 	}
 }

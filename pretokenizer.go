@@ -4,27 +4,27 @@ import (
 	"regexp"
 )
 
-type RegexpPreTokenizer struct {
+type ByteLevel struct {
 	re *regexp.Regexp
 }
 
 type PreTokenizer interface {
-	preTokenize(string) []string
+	PreTokenize(string) []string
 }
 
-func NewPreTokenizer() *RegexpPreTokenizer {
+func NewByteLevel() *ByteLevel {
 	// r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 
 	// TODO work around for missing negative lookahead
 
 	re := regexp.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+`)
 
-	return &RegexpPreTokenizer{
+	return &ByteLevel{
 		re: re,
 	}
 }
 
-func (p *RegexpPreTokenizer) preTokenize(phrase string) []string {
+func (p *ByteLevel) PreTokenize(phrase string) []string {
 	compounds := p.re.FindAllString(phrase, -1)
 
 	if phrase == "" {
