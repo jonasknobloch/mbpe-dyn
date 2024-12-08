@@ -63,6 +63,8 @@ func trainReference() {
 
 	preTokenizer := spre.NewByteLevel()
 
+	preTokenizer.SetTrimOffsets(false)
+
 	tokenizer.WithPreTokenizer(preTokenizer)
 
 	if err := tokenizer.Train(trainer, files); err != nil {
