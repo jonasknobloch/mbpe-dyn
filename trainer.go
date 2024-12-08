@@ -117,6 +117,10 @@ func (t *MBPETrainer) Train(name string) error {
 		return err
 	}
 
+	if err := t.SaveDict("dict.txt"); err != nil {
+		return err
+	}
+
 	t.model.InitVocab(t.vocabSize)
 
 	t.InitVocab()
@@ -172,4 +176,20 @@ func (t *MBPETrainer) InitVocab() {
 	for _, token := range alphabet {
 		t.model.AddToken(token)
 	}
+}
+
+func (t *MBPETrainer) SaveDict(name string) error {
+	if err := toFile(name, func(writer *bufio.Writer) error {
+		for _, chunk := range t.dict {
+			if _, err := writer.WriteString(fmt.Sprintf("%s %d\n", chunk.src, chunk.n)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
