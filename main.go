@@ -26,11 +26,13 @@ func tokenize() {
 	byteLevel := NewByteLevel(true)
 
 	tokenizer.SetPreTokenizer(byteLevel)
+	tokenizer.SetDecoder(byteLevel)
 
 	tokens := tokenizer.Tokenize("To infinity and beyond!")
 
 	fmt.Println(tokens)
 	fmt.Println(model.ToString(tokens))
+	fmt.Println(tokenizer.decoder.Decode(model.ToString(tokens)))
 }
 
 func train() {
