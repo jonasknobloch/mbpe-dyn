@@ -21,9 +21,11 @@ func tokenize() {
 		log.Fatal(err)
 	}
 
-	preTokenizer := NewByteLevel(true)
+	tokenizer := NewTokenizer(model)
 
-	tokenizer := NewTokenizer(preTokenizer, model, nil)
+	byteLevel := NewByteLevel(true)
+
+	tokenizer.SetPreTokenizer(byteLevel)
 
 	tokens := tokenizer.Tokenize("To infinity and beyond!")
 

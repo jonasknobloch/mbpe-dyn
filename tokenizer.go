@@ -6,12 +6,18 @@ type Tokenizer struct {
 	decoder      Decoder
 }
 
-func NewTokenizer(preTokenizer PreTokenizer, model Model, decoder Decoder) *Tokenizer {
+func NewTokenizer(model Model) *Tokenizer {
 	return &Tokenizer{
-		preTokenizer: preTokenizer,
-		model:        model,
-		decoder:      decoder,
+		model: model,
 	}
+}
+
+func (t *Tokenizer) SetPreTokenizer(preTokenizer PreTokenizer) {
+	t.preTokenizer = preTokenizer
+}
+
+func (t *Tokenizer) SetDecoder(decoder Decoder) {
+	t.decoder = decoder
 }
 
 func (t *Tokenizer) Tokenize(phrase string) []int {
