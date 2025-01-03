@@ -1,12 +1,12 @@
 package main
 
 import (
-	"regexp"
+	"github.com/dlclark/regexp2"
 )
 
 type ByteLevel struct {
 	addPrefixSpace bool
-	re             *regexp.Regexp
+	re             *regexp2.Regexp
 }
 
 type PreTokenizer interface {
@@ -14,11 +14,7 @@ type PreTokenizer interface {
 }
 
 func NewByteLevel(addPrefixSpace bool) *ByteLevel {
-	// r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
-
-	// TODO work around for missing negative lookahead
-
-	re := regexp.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+`)
+	re := regexp2.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+`, 0)
 
 	return &ByteLevel{
 		addPrefixSpace: addPrefixSpace,
@@ -35,7 +31,21 @@ func (p *ByteLevel) PreTokenize(phrase string) []string {
 		phrase = " " + phrase
 	}
 
-	compounds := p.re.FindAllString(phrase, -1)
+	regexp2FindAllString := func(re *regexp2.Regexp, s string) []string {
+		var matches []string
+
+		m, _ := re.FindStringMatch(s)
+
+		for m != nil {
+			matches = append(matches, m.String())
+
+			m, _ = re.FindNextMatch(m)
+		}
+
+		return matches
+	}
+
+	compounds := regexp2FindAllString(p.re, phrase)
 
 	if compounds == nil {
 		panic("could not match phrase")
