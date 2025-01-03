@@ -169,6 +169,14 @@ func (m *MBPE) Load(vocab, merges string) error {
 	if err := fromFile(merges, func(scanner *bufio.Scanner) error {
 		for scanner.Scan() {
 			line := scanner.Text()
+
+			if line[0] == '#' {
+				continue
+			}
+
+			if err := scanner.Err(); err != nil {
+			}
+
 			var merge [2]string
 
 			if _, err := fmt.Sscanf(line, "%s %s", &merge[0], &merge[1]); err != nil {
