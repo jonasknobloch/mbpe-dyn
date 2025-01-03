@@ -81,7 +81,15 @@ func (t *MBPETrainer) Pairs(k int) [][2]string {
 	}
 
 	sort.Slice(pairsList, func(i, j int) bool {
-		return pairsList[i].weight > pairsList[j].weight
+		if pairsList[i].weight != pairsList[j].weight {
+			return pairsList[i].weight > pairsList[j].weight
+		}
+
+		if pairsList[i].pair[0] != pairsList[j].pair[0] {
+			return pairsList[i].pair[0] < pairsList[j].pair[0]
+		}
+
+		return pairsList[i].pair[1] < pairsList[j].pair[1]
 	})
 
 	k = min(k, len(pairsList))
