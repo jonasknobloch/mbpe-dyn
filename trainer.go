@@ -86,11 +86,15 @@ func (t *MBPETrainer) Pairs(k int) [][2]string {
 		}
 
 		if pairsList[i].pair[0] != pairsList[j].pair[0] {
-			return pairsList[i].pair[0] < pairsList[j].pair[0]
+			return t.model.atoi[pairsList[i].pair[0]] < t.model.atoi[pairsList[j].pair[0]]
 		}
 
-		return pairsList[i].pair[1] < pairsList[j].pair[1]
+		return t.model.atoi[pairsList[i].pair[1]] < t.model.atoi[pairsList[j].pair[1]]
 	})
+
+	// for _, pair := range pairsList {
+	// 	fmt.Printf("%s (%d) %s (%d) %f\n", pair.pair[0], t.model.atoi[pair.pair[0]], pair.pair[1], t.model.atoi[pair.pair[1]], pair.weight)
+	// }
 
 	k = min(k, len(pairsList))
 
@@ -98,6 +102,8 @@ func (t *MBPETrainer) Pairs(k int) [][2]string {
 
 	for i := range k {
 		result[i] = pairsList[i].pair
+
+		// fmt.Printf("merging %s %s\n", result[i][0], result[i][1])
 	}
 
 	return result
