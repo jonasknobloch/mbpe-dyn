@@ -41,7 +41,7 @@ func (t *MBPETrainer) InitDict(name string) error {
 			return err
 		}
 
-		compounds := t.preTokenizer.PreTokenize(line)
+		compounds := t.preTokenizer.PreTokenize(line + "\n")
 
 		for _, compound := range compounds {
 			if _, ok := t.dict[compound]; !ok {
