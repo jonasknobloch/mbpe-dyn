@@ -126,7 +126,7 @@ func (m *MBPE) ToString(tokens []int) []string {
 }
 
 func (m *MBPE) Save(vocab, merges string) error {
-	if err := toJSON(vocab, m.atoi); err != nil {
+	if err := toJSON(vocab, Vocab[string, int](m.atoi)); err != nil {
 		return err
 	}
 
