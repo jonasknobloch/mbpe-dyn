@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 )
 
 type MBPETrainer struct {
@@ -34,6 +35,26 @@ func (t *MBPETrainer) InitDict(name string) error {
 
 	scanner := bufio.NewScanner(file)
 
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+
+		if i := strings.IndexAny(string(data), "\r\n"); i >= 0 {
+			if i+1 < len(data) && data[i] == '\r' && data[i+1] == '\n' {
+				return i + 2, data[0 : i+2], nil
+			}
+
+			return i + 1, data[0 : i+1], nil
+		}
+
+		if atEOF {
+			return len(data), data, nil
+		}
+
+		return 0, nil, nil
+	})
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -41,7 +62,7 @@ func (t *MBPETrainer) InitDict(name string) error {
 			return err
 		}
 
-		compounds := t.preTokenizer.PreTokenize(line + "\n")
+		compounds := t.preTokenizer.PreTokenize(line)
 
 		for _, compound := range compounds {
 			if _, ok := t.dict[compound]; !ok {
