@@ -220,9 +220,23 @@ func (t *MBPETrainer) InitVocab() {
 }
 
 func (t *MBPETrainer) SaveDict(name string) error {
+	order := make([]string, 0, len(t.dict))
+
+	for token := range t.dict {
+		order = append(order, token)
+	}
+
+	sort.Slice(order, func(i, j int) bool {
+		if t.dict[order[i]].n != t.dict[order[j]].n {
+			return t.dict[order[i]].n > t.dict[order[j]].n
+		}
+
+		return t.dict[order[i]].src < t.dict[order[j]].src
+	})
+
 	if err := toFile(name, func(writer *bufio.Writer) error {
-		for _, chunk := range t.dict {
-			if _, err := writer.WriteString(fmt.Sprintf("%s %d\n", chunk.src, chunk.n)); err != nil {
+		for _, key := range order {
+			if _, err := writer.WriteString(fmt.Sprintf("%s %d\n", t.dict[key].src, t.dict[key].n)); err != nil {
 				return err
 			}
 		}
