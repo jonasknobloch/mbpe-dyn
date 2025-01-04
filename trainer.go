@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type MBPETrainer struct {
@@ -127,6 +129,12 @@ func (t *MBPETrainer) Pairs(k int) [][2]string {
 		// fmt.Printf("merging %s %s\n", result[i][0], result[i][1])
 	}
 
+	if ok, _ := strconv.ParseBool(os.Getenv("CAPTURE_MERGE_FRAMES")); ok {
+		if err := t.SaveMergeFrame(fmt.Sprintf("merge_frames/frame_%d.txt", time.Now().UnixNano()), pairsList[:min(len(pairsList), 10)]); err != nil {
+			panic(err)
+		}
+	}
+
 	return result
 }
 
@@ -237,6 +245,29 @@ func (t *MBPETrainer) SaveDict(name string) error {
 	if err := toFile(name, func(writer *bufio.Writer) error {
 		for _, key := range order {
 			if _, err := writer.WriteString(fmt.Sprintf("%s %d\n", t.dict[key].src, t.dict[key].n)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *MBPETrainer) SaveMergeFrame(name string, frame []struct {
+	pair   [2]string
+	weight float64
+}) error {
+	if _, err := os.Stat("merge_frames"); os.IsNotExist(err) {
+		_ = os.Mkdir("merge_frames", os.ModePerm)
+	}
+
+	if err := toFile(name, func(writer *bufio.Writer) error {
+		for _, pair := range frame {
+			if _, err := writer.WriteString(fmt.Sprintf("%s (%d) %s (%d) %f\n", pair.pair[0], t.model.atoi[pair.pair[0]], pair.pair[1], t.model.atoi[pair.pair[1]], pair.weight)); err != nil {
 				return err
 			}
 		}
