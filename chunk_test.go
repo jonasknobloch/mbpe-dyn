@@ -6,7 +6,7 @@ import (
 )
 
 func TestChunk_Pairs(t *testing.T) {
-	c := NewChunk("hello", 2, 1)
+	c := NewChunk("Ġthth", 2, 1)
 
 	pairs := c.Pairs()
 

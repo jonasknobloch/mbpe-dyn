@@ -79,7 +79,7 @@ func (c *Chunk) Pairs() map[[2]string]float64 {
 	result := make(map[[2]string]float64)
 
 	for i, pair := range pairs {
-		if _, ok := result[pair]; ok {
+		if _, ok := result[pair]; !ok {
 			result[pair] = 0
 		}
 
