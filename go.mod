@@ -2,7 +2,10 @@ module mbpe-dyn
 
 go 1.22
 
-require github.com/sugarme/tokenizer v0.2.2
+require (
+	github.com/dlclark/regexp2 v1.11.4
+	github.com/sugarme/tokenizer v0.2.2
+)
 
 require (
 	github.com/emirpasic/gods v1.12.0 // indirect
