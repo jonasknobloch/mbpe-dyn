@@ -14,7 +14,7 @@ type PreTokenizer interface {
 }
 
 func NewByteLevel(addPrefixSpace bool) *ByteLevel {
-	re := regexp2.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+`, 0)
+	re := regexp2.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+(?!\S)|\s+`, 0)
 
 	return &ByteLevel{
 		addPrefixSpace: addPrefixSpace,
