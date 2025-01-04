@@ -143,6 +143,10 @@ func (t *MBPETrainer) Train(name string) error {
 
 	t.model.InitMerges(k)
 
+	pb := NewProgressBar(60, k)
+
+	fmt.Print(pb.String())
+
 	for i := 0; i < k; i++ {
 		pairs := t.Pairs(1)
 
@@ -156,7 +160,9 @@ func (t *MBPETrainer) Train(name string) error {
 
 		t.Merge(left, right)
 
-		fmt.Printf("%d\n", int(float64(i)/float64(k)*100))
+		pb.Increment()
+
+		fmt.Print(pb.String())
 	}
 
 	return nil
