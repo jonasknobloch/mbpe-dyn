@@ -7,12 +7,14 @@ import (
 )
 
 const (
-	RuneWhitespace = iota
+	RuneUnicode32 = iota
+	RuneWhitespaceNotUnicode32
 	RuneLetter
 	RuneNumber
 	RuneOther
 	StateInitial
-	StateWhitespace
+	StateU32
+	StateWhitespaceNotUnicode32
 	StateLetter
 	StateNumber
 	StateOther
@@ -41,21 +43,23 @@ func (f *FSA) Reset() {
 func (f *FSA) Read(next rune) bool {
 	var r int
 
-	if unicode.IsSpace(next) {
-		r = RuneWhitespace
+	if next == 32 {
+		r = RuneUnicode32
 	} else if unicode.IsLetter(next) {
 		r = RuneLetter
 	} else if unicode.IsNumber(next) {
 		r = RuneNumber
+	} else if unicode.IsSpace(next) {
+		r = RuneWhitespaceNotUnicode32
 	} else {
 		r = RuneOther
 	}
 
 	if f.state == StateInitial {
 		switch r {
-		case RuneWhitespace:
+		case RuneUnicode32:
 			f.input += string(next)
-			f.state = StateWhitespace
+			f.state = StateU32
 
 			break
 		case RuneLetter:
@@ -68,13 +72,27 @@ func (f *FSA) Read(next rune) bool {
 			f.state = StateNumber
 
 			break
-		default:
+		case RuneOther:
 			f.input += string(next)
 			f.state = StateOther
+
+			break
+		case RuneWhitespaceNotUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceNotUnicode32
+
+			break
+		default:
+			panic("invalid state")
 		}
-	} else if f.state == StateWhitespace {
+	} else if f.state == StateU32 {
 		switch r {
-		case RuneWhitespace:
+		case RuneUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceLookAhead
+
+			break
+		case RuneWhitespaceNotUnicode32:
 			f.input += string(next)
 			f.state = StateWhitespaceLookAhead
 
@@ -92,6 +110,21 @@ func (f *FSA) Read(next rune) bool {
 		default:
 			f.input += string(next)
 			f.state = StateOther
+		}
+	} else if f.state == StateWhitespaceNotUnicode32 {
+		switch r {
+		case RuneUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceLookAhead
+
+			break
+		case RuneWhitespaceNotUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceLookAhead
+
+			break
+		default:
+			return false
 		}
 	} else if f.state == StateNumber {
 		switch r {
@@ -125,7 +158,12 @@ func (f *FSA) Read(next rune) bool {
 		}
 	} else if f.state == StateWhitespaceLookAhead {
 		switch r {
-		case RuneWhitespace:
+		case RuneUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceLookAhead
+
+			break
+		case RuneWhitespaceNotUnicode32:
 			f.input += string(next)
 			f.state = StateWhitespaceLookAhead
 
