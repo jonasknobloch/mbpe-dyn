@@ -193,7 +193,7 @@ func (f *FSA) FindAll(s string) []string {
 					return matches
 				}
 
-				break
+				return findAll(runes, matches)
 			}
 		}
 
