@@ -183,7 +183,9 @@ func (f *FSA) FindAll(s string) []string {
 			}
 		}
 
-		matches = append(matches, f.input)
+		if f.input != "" {
+			matches = append(matches, f.input)
+		}
 
 		return matches
 	}
