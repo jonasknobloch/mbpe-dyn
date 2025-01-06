@@ -22,7 +22,7 @@ func regexp2FindAllString(re *regexp2.Regexp, s string) []string {
 var re = regexp2.MustCompile(`'s|'t|'re|'ve|'m|'ll|'d| ?\pL+| ?\pN+| ?[^\s\pL\pN]+|\s+(?!\S)|\s+`, 0)
 
 func TestFSA_FindAll(t *testing.T) {
-	fsm := NewFSA()
+	fsa := NewFSA()
 
 	expected := []string{
 		"Theirs",
@@ -41,7 +41,9 @@ func TestFSA_FindAll(t *testing.T) {
 		"\n",
 	}
 
-	for i, s := range fsm.FindAll("Theirs for their style I'll read, his for his love'.\n") {
+	out := fsa.FindAll("Theirs for their style I'll read, his for his love'.\n")
+
+	for i, s := range out {
 		if s != expected[i] {
 			t.Errorf("expected [%s] but got [%s]", expected[i], s)
 		}
@@ -49,10 +51,10 @@ func TestFSA_FindAll(t *testing.T) {
 }
 
 func BenchmarkFSA_FindAll(b *testing.B) {
-	fsm := NewFSA()
+	fsa := NewFSA()
 
 	for i := 0; i < b.N; i++ {
-		fsm.FindAll("Theirs for their style I'll read, his for his love'.\n")
+		fsa.FindAll("Theirs for their style I'll read, his for his love'.\n")
 	}
 }
 
@@ -63,7 +65,7 @@ func BenchmarkRegexp2_FindAll(b *testing.B) {
 }
 
 func FuzzFSA_FindAll(f *testing.F) {
-	fsm := NewFSA()
+	fsa := NewFSA()
 
 	f.Add("foo")
 	f.Add(" ")
@@ -71,7 +73,7 @@ func FuzzFSA_FindAll(f *testing.F) {
 	f.Add("   bar")
 
 	f.Fuzz(func(t *testing.T, s string) {
-		out := fsm.FindAll(s)
+		out := fsa.FindAll(s)
 		ref := regexp2FindAllString(re, s)
 
 		if len(out) != len(ref) {
