@@ -23,21 +23,21 @@ const (
 
 type FSA struct {
 	state  int
-	input  string
+	input  []rune
 	static []string
 }
 
 func NewFSA() *FSA {
 	return &FSA{
 		state:  StateInitial,
-		input:  "",
+		input:  make([]rune, 0),
 		static: []string{"'s", "'t", "'re", "'m", "'ll", "'d"},
 	}
 }
 
 func (f *FSA) Reset() {
 	f.state = StateInitial
-	f.input = ""
+	f.input = make([]rune, 0)
 }
 
 func (f *FSA) Read(next rune) bool {
@@ -58,64 +58,64 @@ func (f *FSA) Read(next rune) bool {
 	if f.state == StateInitial {
 		switch r {
 		case RuneUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateU32
 
 			break
 		case RuneWhitespaceNotUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceNotUnicode32
 
 			break
 		case RuneLetter:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateLetter
 
 			break
 		case RuneNumber:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateNumber
 
 			break
 		default:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateOther
 		}
 	} else if f.state == StateU32 {
 		switch r {
 		case RuneUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
 		case RuneWhitespaceNotUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
 		case RuneLetter:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateLetter
 
 			break
 		case RuneNumber:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateNumber
 
 			break
 		default:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateOther
 		}
 	} else if f.state == StateWhitespaceNotUnicode32 {
 		switch r {
 		case RuneUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
 		case RuneWhitespaceNotUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
@@ -125,7 +125,7 @@ func (f *FSA) Read(next rune) bool {
 	} else if f.state == StateNumber {
 		switch r {
 		case RuneNumber:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateNumber
 
 			break
@@ -135,7 +135,7 @@ func (f *FSA) Read(next rune) bool {
 	} else if f.state == StateLetter {
 		switch r {
 		case RuneLetter:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateLetter
 
 			break
@@ -145,7 +145,7 @@ func (f *FSA) Read(next rune) bool {
 	} else if f.state == StateOther {
 		switch r {
 		case RuneOther:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateOther
 
 			break
@@ -155,12 +155,12 @@ func (f *FSA) Read(next rune) bool {
 	} else if f.state == StateWhitespaceLookAhead {
 		switch r {
 		case RuneUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
 		case RuneWhitespaceNotUnicode32:
-			f.input += string(next)
+			f.input = append(f.input, next)
 			f.state = StateWhitespaceLookAhead
 
 			break
@@ -202,14 +202,14 @@ func (f *FSA) FindAll(s string) []string {
 				}
 
 				if f.state == StateWhitespaceLookAhead {
-					matches = append(matches, string([]rune(f.input)[:utf8.RuneCountInString(f.input)-1]))
+					matches = append(matches, string(f.input[:len(f.input)-1]))
 
 					f.Reset()
 
 					return findAll(runes[i-1:], matches)
 				}
 
-				matches = append(matches, f.input)
+				matches = append(matches, string(f.input))
 
 				f.Reset()
 
@@ -217,8 +217,8 @@ func (f *FSA) FindAll(s string) []string {
 			}
 		}
 
-		if f.input != "" {
-			matches = append(matches, f.input)
+		if len(f.input) > 0 {
+			matches = append(matches, string(f.input))
 		}
 
 		return matches
