@@ -202,7 +202,7 @@ func (f *FSA) FindAll(s string) []string {
 				}
 
 				if f.state == StateWhitespaceLookAhead {
-					matches = append(matches, f.input[:len(f.input)-1])
+					matches = append(matches, string([]rune(f.input)[:utf8.RuneCountInString(f.input)-1]))
 
 					f.Reset()
 
