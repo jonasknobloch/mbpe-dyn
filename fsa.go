@@ -45,12 +45,12 @@ func (f *FSA) Read(next rune) bool {
 
 	if next == 32 {
 		r = RuneUnicode32
+	} else if unicode.IsSpace(next) {
+		r = RuneWhitespaceNotUnicode32
 	} else if unicode.IsLetter(next) {
 		r = RuneLetter
 	} else if unicode.IsNumber(next) {
 		r = RuneNumber
-	} else if unicode.IsSpace(next) {
-		r = RuneWhitespaceNotUnicode32
 	} else {
 		r = RuneOther
 	}
@@ -60,6 +60,11 @@ func (f *FSA) Read(next rune) bool {
 		case RuneUnicode32:
 			f.input += string(next)
 			f.state = StateU32
+
+			break
+		case RuneWhitespaceNotUnicode32:
+			f.input += string(next)
+			f.state = StateWhitespaceNotUnicode32
 
 			break
 		case RuneLetter:
@@ -72,18 +77,9 @@ func (f *FSA) Read(next rune) bool {
 			f.state = StateNumber
 
 			break
-		case RuneOther:
+		default:
 			f.input += string(next)
 			f.state = StateOther
-
-			break
-		case RuneWhitespaceNotUnicode32:
-			f.input += string(next)
-			f.state = StateWhitespaceNotUnicode32
-
-			break
-		default:
-			panic("invalid state")
 		}
 	} else if f.state == StateU32 {
 		switch r {
