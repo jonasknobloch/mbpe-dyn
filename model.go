@@ -61,7 +61,7 @@ func (m *MBPE) Tokenize(phrase string) []int {
 	// 	pairs = append(pairs, string(chunk[i]) + string(chunk[i+1]))
 	// }
 
-	c := NewChunk(phrase, 1, 0)
+	c := NewChunk(phrase, 1, nil, 0)
 
 	var tokenize func()
 

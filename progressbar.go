@@ -57,8 +57,8 @@ func (p *ProgressBar) String() string {
 		duration,
 		p.title,
 		percentage,
-		strings.Repeat("=", progress),
-		strings.Repeat("-", p.width-progress),
+		strings.Repeat("=", min(progress, p.width)),
+		strings.Repeat("-", max(0, p.width-progress)),
 		p.n,
 		p.steps,
 	)

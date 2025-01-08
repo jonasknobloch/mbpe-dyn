@@ -6,7 +6,7 @@ import (
 )
 
 func TestChunk_Pairs(t *testing.T) {
-	c := NewChunk("Ġthth", 2, 1)
+	c := NewChunk("Ġthth", 2, nil, 1)
 
 	pairs, weights := c.Pairs()
 
@@ -16,7 +16,7 @@ func TestChunk_Pairs(t *testing.T) {
 }
 
 func TestChunk_MergePairIdx(t *testing.T) {
-	c := NewChunk("hello", 2, 1)
+	c := NewChunk("hello", 2, nil, 1)
 
 	c.MergePairIdx(0)
 	c.MergePairIdx(0)
@@ -29,7 +29,7 @@ func TestChunk_MergePairIdx(t *testing.T) {
 }
 
 func TestChunk_MergePair(t *testing.T) {
-	c := NewChunk("hello", 2, 1)
+	c := NewChunk("hello", 2, nil, 1)
 
 	c.MergePair("h", "e")
 	c.MergePair("he", "l")
@@ -42,7 +42,7 @@ func TestChunk_MergePair(t *testing.T) {
 }
 
 func TestChunk_TrackedMerge(t *testing.T) {
-	c := NewChunk("Ġthither", 1, 0)
+	c := NewChunk("Ġthither", 1, nil, 0)
 
 	changes := c.TrackedMerge(Merge{
 		pair:      Pair{"Ġ", "t"},

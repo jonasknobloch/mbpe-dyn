@@ -13,14 +13,22 @@ import (
 type MBPETrainer struct {
 	preTokenizer PreTokenizer
 	model        *MBPE
+	celex        *CELEX
+	alpha        float64
 	vocabSize    int
 	dict         map[string]*Chunk
 }
 
-func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, vocabSize int) *MBPETrainer {
+func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, celex *CELEX, alpha float64, vocabSize int) *MBPETrainer {
+	if alpha < 0 || alpha > 1 {
+		panic("alpha must be in [0, 1]")
+	}
+
 	return &MBPETrainer{
 		preTokenizer: preTokenizer,
 		model:        model,
+		celex:        celex,
+		alpha:        alpha,
 		vocabSize:    vocabSize,
 		dict:         make(map[string]*Chunk),
 	}
@@ -68,7 +76,7 @@ func (t *MBPETrainer) InitDict(name string) error {
 
 		for _, compound := range compounds {
 			if _, ok := t.dict[compound]; !ok {
-				t.dict[compound] = NewChunk(compound, 0, 0.1) // TODO move alpha into trainer ?!
+				t.dict[compound] = NewChunk(compound, 0, t.celex.Split(compound), t.alpha)
 			}
 
 			t.dict[compound].n += 1

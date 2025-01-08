@@ -40,7 +40,11 @@ func train() {
 
 	preTokenizer := NewByteLevel(true)
 
-	trainer := NewMBPETrainer(preTokenizer, model, 5000)
+	celex := NewCELEX()
+
+	celex.Init("data/en.splits.tsv")
+
+	trainer := NewMBPETrainer(preTokenizer, model, celex, 0.1, 5000)
 
 	if err := trainer.Train("data/shakespeare.txt"); err != nil {
 		log.Fatal(err)

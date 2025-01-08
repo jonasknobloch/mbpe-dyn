@@ -8,7 +8,7 @@ type Chunk struct {
 	alpha  float64
 }
 
-func NewChunk(src string, n int, alpha float64) *Chunk {
+func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
 	bounds := []int{0}
 
 	for _, r := range src {
@@ -18,6 +18,18 @@ func NewChunk(src string, n int, alpha float64) *Chunk {
 	}
 
 	var morphs []int
+
+	if len(splits) > 1 {
+		morphs = make([]int, 0)
+
+		i := 0
+
+		for _, sub := range splits[:len(splits)-1] {
+			i += len(sub)
+
+			morphs = append(morphs, i)
+		}
+	}
 
 	// suffixes := []string{"ing", "s", "ed"}
 	//
