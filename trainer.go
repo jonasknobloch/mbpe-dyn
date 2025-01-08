@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
+	"container/heap"
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -78,87 +78,20 @@ func (t *MBPETrainer) InitDict(name string) error {
 	return nil
 }
 
-func (t *MBPETrainer) Pairs(k int) [][2]string {
-	pairs := make(map[[2]string]float64)
-
-	for _, compound := range t.dict {
-		for pair, weight := range compound.Pairs() {
-			if _, ok := pairs[pair]; !ok {
-				pairs[pair] = 0
-			}
-
-			pairs[pair] += weight
-		}
-	}
-
-	pairsList := make([]struct {
-		pair   [2]string
-		weight float64
-	}, 0, len(pairs))
-
-	for pair, weight := range pairs {
-		pairsList = append(pairsList, struct {
-			pair   [2]string
-			weight float64
-		}{pair: pair, weight: weight})
-	}
-
-	sort.Slice(pairsList, func(i, j int) bool {
-		if pairsList[i].weight != pairsList[j].weight {
-			return pairsList[i].weight > pairsList[j].weight
-		}
-
-		if pairsList[i].pair[0] != pairsList[j].pair[0] {
-			return t.model.atoi[pairsList[i].pair[0]] < t.model.atoi[pairsList[j].pair[0]]
-		}
-
-		return t.model.atoi[pairsList[i].pair[1]] < t.model.atoi[pairsList[j].pair[1]]
-	})
-
-	// for _, pair := range pairsList {
-	// 	fmt.Printf("%s (%d) %s (%d) %f\n", pair.pair[0], t.model.atoi[pair.pair[0]], pair.pair[1], t.model.atoi[pair.pair[1]], pair.weight)
-	// }
-
-	k = min(k, len(pairsList))
-
-	result := make([][2]string, k)
-
-	for i := range k {
-		result[i] = pairsList[i].pair
-
-		// fmt.Printf("merging %s %s\n", result[i][0], result[i][1])
-	}
-
-	if ok, _ := strconv.ParseBool(os.Getenv("CAPTURE_MERGE_FRAMES")); ok {
-		if err := t.SaveMergeFrame(fmt.Sprintf("merge_frames/frame_%d.txt", time.Now().UnixNano()), pairsList[:min(len(pairsList), 10)]); err != nil {
-			panic(err)
-		}
-	}
-
-	return result
-}
-
 func (t *MBPETrainer) AddToken(left, right string) {
 	t.model.AddToken(left + right)
 	t.model.AddMerge(left, right)
 }
 
-func (t *MBPETrainer) Merge(left, right string) {
-	// fmt.Printf("merging %s and %s\n", left, right)
-
-	for _, compound := range t.dict {
-		pairs := compound.Pairs() // TODO don't recompute again
-
-		if _, ok := pairs[[2]string{left, right}]; ok {
-			compound.MergePair(left, right)
-		}
-	}
-}
-
 func (t *MBPETrainer) Train(name string) error {
+	pb0 := NewProgressBar("Pre-process files", 40, 1, time.Now())
+
 	if err := t.InitDict(name); err != nil {
 		return err
 	}
+
+	pb0.Update()
+	pb0.Finish()
 
 	if err := t.SaveDict("dict.txt"); err != nil {
 		return err
@@ -172,27 +105,117 @@ func (t *MBPETrainer) Train(name string) error {
 
 	t.model.InitMerges(k)
 
-	pb := NewProgressBar(60, k)
+	var chunks = make([]Chunk, 0, len(t.dict))
 
-	fmt.Print(pb.String())
+	for _, chunk := range t.dict {
+		chunks = append(chunks, *chunk)
+	}
 
-	for i := 0; i < k; i++ {
-		pairs := t.Pairs(1)
+	var mergeWeights = make(map[Pair]float64) // pair_counts
+	var pairPositions = make(map[Pair][]int)  // where_to_update
 
-		if len(pairs) == 0 {
-			return nil
+	pb1 := NewProgressBar("Initialize pairs", 40, len(chunks), time.Now())
+
+	for i, chunk := range chunks {
+		pairs, weights := chunk.Pairs()
+
+		for j, pair := range pairs {
+			if _, ok := mergeWeights[pair]; !ok {
+				mergeWeights[pair] = 0
+			}
+
+			if _, ok := pairPositions[pair]; !ok {
+				pairPositions[pair] = make([]int, 0)
+			}
+
+			mergeWeights[pair] += weights[j]
+			pairPositions[pair] = append(pairPositions[pair], i)
 		}
 
-		left, right := pairs[0][0], pairs[0][1]
-
-		t.AddToken(left, right)
-
-		t.Merge(left, right)
-
-		pb.Increment()
-
-		fmt.Print(pb.String())
+		pb1.Update()
 	}
+
+	pb1.Finish()
+
+	queue := NewQueue(make([]Merge, 0))
+
+	for pair, positions := range pairPositions {
+		idx := [2]int{
+			t.model.atoi[pair[0]],
+			t.model.atoi[pair[1]],
+		}
+
+		heap.Push(queue, Merge{
+			pair:      pair,
+			idx:       idx,
+			weight:    mergeWeights[pair],
+			positions: positions,
+		})
+
+		delete(pairPositions, pair)
+	}
+
+	pb2 := NewProgressBar("Compute merges", 40, t.vocabSize-len(t.model.atoi), time.Now())
+
+	for len(t.model.atoi) < t.vocabSize && queue.Len() != 0 {
+		top := heap.Pop(queue).(Merge)
+
+		if top.weight != mergeWeights[top.pair] {
+			top.weight = mergeWeights[top.pair]
+
+			queue.Push(top)
+
+			continue
+		}
+
+		// dumpQueue(*queue, top, mergeWeights)
+
+		if top.weight < 1 {
+			break
+		}
+
+		t.AddToken(top.pair[0], top.pair[1])
+
+		for _, position := range top.positions {
+			chunk := &chunks[position]
+
+			for pair, weight := range chunk.TrackedMerge(top) {
+				mergeWeights[pair] += weight
+
+				if weight <= 0 {
+					continue
+				}
+
+				if _, ok := pairPositions[pair]; !ok {
+					pairPositions[pair] = make([]int, 0)
+				}
+
+				pairPositions[pair] = append(pairPositions[pair], position)
+			}
+		}
+
+		for pair := range pairPositions {
+			idx := [2]int{
+				t.model.atoi[pair[0]],
+				t.model.atoi[pair[1]],
+			}
+
+			merge := Merge{
+				pair:      pair,
+				idx:       idx,
+				weight:    mergeWeights[pair],
+				positions: pairPositions[pair],
+			}
+
+			heap.Push(queue, merge)
+
+			delete(pairPositions, pair)
+		}
+
+		pb2.Update()
+	}
+
+	pb2.Finish()
 
 	return nil
 }
@@ -257,17 +280,14 @@ func (t *MBPETrainer) SaveDict(name string) error {
 	return nil
 }
 
-func (t *MBPETrainer) SaveMergeFrame(name string, frame []struct {
-	pair   [2]string
-	weight float64
-}) error {
+func saveMergeFrame(name string, frame []Merge) error {
 	if _, err := os.Stat("merge_frames"); os.IsNotExist(err) {
 		_ = os.Mkdir("merge_frames", os.ModePerm)
 	}
 
 	if err := toFile(name, func(writer *bufio.Writer) error {
-		for _, pair := range frame {
-			if _, err := writer.WriteString(fmt.Sprintf("%s (%d) %s (%d) %f\n", pair.pair[0], t.model.atoi[pair.pair[0]], pair.pair[1], t.model.atoi[pair.pair[1]], pair.weight)); err != nil {
+		for _, merge := range frame {
+			if _, err := writer.WriteString(fmt.Sprintf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.idx[0], merge.pair[1], merge.idx[1], merge.weight)); err != nil {
 				return err
 			}
 		}
@@ -278,4 +298,34 @@ func (t *MBPETrainer) SaveMergeFrame(name string, frame []struct {
 	}
 
 	return nil
+}
+
+func dumpQueue(queue Queue, top Merge, mergeWeights map[Pair]float64) {
+	list := make([]Merge, queue.Len())
+
+	copy(list, queue)
+
+	list = append(list, top) // TODO just use heap helpers instead of sorting the underlying slice
+
+	for _, merge := range list {
+		if merge.weight != mergeWeights[merge.pair] {
+			merge.weight = mergeWeights[merge.pair]
+		}
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[j].Less(list[i])
+	})
+
+	fmt.Println()
+
+	// _ = saveMergeFrame(fmt.Sprintf("merge_frames/frame_%d.txt", time.Now().UnixNano()), list[0:10])
+
+	for i, merge := range list {
+		if i == 10 {
+			break
+		}
+
+		fmt.Printf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.idx[0], merge.pair[1], merge.idx[1], merge.weight)
+	}
 }

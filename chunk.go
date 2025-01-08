@@ -19,6 +19,14 @@ func NewChunk(src string, n int, alpha float64) *Chunk {
 
 	var morphs []int
 
+	// suffixes := []string{"ing", "s", "ed"}
+	//
+	// for _, suffix := range suffixes {
+	// 	if strings.HasSuffix(src, suffix) {
+	// 		morphs = append(morphs, len(src)-len(suffix))
+	// 	}
+	// }
+
 	return &Chunk{
 		src:    src,
 		n:      n,
@@ -28,8 +36,8 @@ func NewChunk(src string, n int, alpha float64) *Chunk {
 	}
 }
 
-func (c *Chunk) Pairs() map[[2]string]float64 {
-	pairs := make([][2]string, len(c.bounds)-2)
+func (c *Chunk) Pairs() ([]Pair, []float64) {
+	pairs := make([]Pair, len(c.bounds)-2)
 	clashes := make([]bool, len(c.bounds)-2)
 
 	for i := 0; i < len(c.bounds)-2; i++ {
@@ -44,7 +52,7 @@ func (c *Chunk) Pairs() map[[2]string]float64 {
 			}
 		}
 
-		pairs[i] = [2]string{
+		pairs[i] = Pair{
 			c.src[c.bounds[i]:c.bounds[i+1]],
 			c.src[c.bounds[i+1]:c.bounds[i+2]],
 		}
@@ -76,17 +84,11 @@ func (c *Chunk) Pairs() map[[2]string]float64 {
 		weights[i] = sum
 	}
 
-	result := make(map[[2]string]float64)
-
-	for i, pair := range pairs {
-		if _, ok := result[pair]; !ok {
-			result[pair] = 0
-		}
-
-		result[pair] += float64(c.n) * weights[i]
+	for i := range weights {
+		weights[i] *= float64(c.n)
 	}
 
-	return result
+	return pairs, weights
 }
 
 func (c *Chunk) MergePairIdx(i int) {
@@ -109,6 +111,47 @@ func (c *Chunk) MergePair(left, right string) {
 			return
 		}
 	}
+}
+
+func (c *Chunk) TrackedMerge(merge Merge) map[Pair]float64 {
+	changes := make(map[Pair]float64)
+
+	pairsBefore, weightsBefore := c.Pairs()
+
+	c.MergePair(merge.pair[0], merge.pair[1])
+
+	pairsAfter, weightsAfter := c.Pairs()
+
+	before := make(map[Pair]float64)
+	after := make(map[Pair]float64)
+
+	for i, pair := range pairsBefore {
+		before[pair] += weightsBefore[i]
+	}
+
+	for i, pair := range pairsAfter {
+		after[pair] += weightsAfter[i]
+	}
+
+	for pair, weightBefore := range before {
+		if weightAfter, ok := after[pair]; ok {
+			if weightBefore == weightAfter {
+				continue
+			}
+
+			changes[pair] = weightAfter - weightBefore // changed weight
+		} else {
+			changes[pair] = -weightBefore // removed pair
+		}
+	}
+
+	for pair, weightAfter := range after {
+		if _, ok := before[pair]; !ok {
+			changes[pair] = weightAfter // new pair
+		}
+	}
+
+	return changes
 }
 
 func (c *Chunk) Tokens() []string {

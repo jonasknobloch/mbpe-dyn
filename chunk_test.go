@@ -8,9 +8,9 @@ import (
 func TestChunk_Pairs(t *testing.T) {
 	c := NewChunk("Ġthth", 2, 1)
 
-	pairs := c.Pairs()
+	pairs, weights := c.Pairs()
 
-	fmt.Println(pairs)
+	fmt.Println(pairs, weights)
 
 	// TODO implement
 }
@@ -39,4 +39,51 @@ func TestChunk_MergePair(t *testing.T) {
 	fmt.Println(c.bounds)
 
 	// TODO implement
+}
+
+func TestChunk_TrackedMerge(t *testing.T) {
+	c := NewChunk("Ġthither", 1, 0)
+
+	changes := c.TrackedMerge(Merge{
+		pair:      Pair{"Ġ", "t"},
+		idx:       [2]int{0, 1},
+		weight:    0,
+		positions: nil,
+	})
+
+	if len(changes) != 3 {
+		t.Errorf("expected %d changes but got %d\n", 3, len(changes))
+	}
+
+	if delta, ok := changes[[2]string{"Ġ", "t"}]; !ok || delta != -1 {
+		if !ok {
+			t.Errorf("expected change not found\n")
+		} else {
+			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+		}
+	}
+
+	if delta, ok := changes[[2]string{"Ġ", "t"}]; !ok || delta != -1 {
+		if !ok {
+			t.Errorf("expected change not found\n")
+		} else {
+			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+		}
+	}
+
+	if delta, ok := changes[[2]string{"t", "h"}]; !ok || delta != -1 {
+		if !ok {
+			t.Errorf("expected change not found\n")
+		} else {
+			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+		}
+	}
+
+	if delta, ok := changes[[2]string{"Ġt", "h"}]; !ok || delta != 1 {
+		if !ok {
+			t.Errorf("expected change not found\n")
+		} else {
+			t.Errorf("expected delta %d but got %d\n", 1, int(delta))
+		}
+	}
 }
