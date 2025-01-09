@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/sugarme/tokenizer v0.2.2
+	google.golang.org/protobuf v1.36.2
 )
 
 require (
