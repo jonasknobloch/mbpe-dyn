@@ -8,6 +8,11 @@ type Chunk struct {
 	alpha  float64
 }
 
+type Change struct {
+	delta  float64
+	update bool
+}
+
 func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
 	bounds := []int{0}
 
@@ -125,8 +130,8 @@ func (c *Chunk) MergePair(left, right string) {
 	}
 }
 
-func (c *Chunk) TrackedMerge(merge Merge) map[Pair]float64 {
-	changes := make(map[Pair]float64)
+func (c *Chunk) TrackedMerge(merge Merge) map[Pair]Change {
+	changes := make(map[Pair]Change)
 
 	pairsBefore, weightsBefore := c.Pairs()
 
@@ -151,15 +156,24 @@ func (c *Chunk) TrackedMerge(merge Merge) map[Pair]float64 {
 				continue
 			}
 
-			changes[pair] = weightAfter - weightBefore // changed weight
+			changes[pair] = Change{
+				delta:  weightAfter - weightBefore,
+				update: true,
+			}
 		} else {
-			changes[pair] = -weightBefore // removed pair
+			changes[pair] = Change{
+				delta:  -weightBefore,
+				update: false, // remove
+			}
 		}
 	}
 
 	for pair, weightAfter := range after {
 		if _, ok := before[pair]; !ok {
-			changes[pair] = weightAfter // new pair
+			changes[pair] = Change{
+				delta:  weightAfter,
+				update: false, // add
+			}
 		}
 	}
 

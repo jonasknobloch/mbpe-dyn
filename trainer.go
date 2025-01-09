@@ -187,11 +187,11 @@ func (t *MBPETrainer) Train(name string) error {
 		for _, position := range top.positions {
 			chunk := &chunks[position]
 
-			for pair, weight := range chunk.TrackedMerge(top) {
-				mergeWeights[pair] += weight
+			for pair, change := range chunk.TrackedMerge(top) {
+				mergeWeights[pair] += change.delta
 
-				if weight <= 0 {
-					continue
+				if change.delta <= 0 || change.update {
+					continue // don't queue removals and positive weight updates
 				}
 
 				if _, ok := pairPositions[pair]; !ok {

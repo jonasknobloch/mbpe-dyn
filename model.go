@@ -42,6 +42,10 @@ func (m *MBPE) Cap() int {
 }
 
 func (m *MBPE) AddToken(token string) {
+	if _, ok := m.atoi[token]; ok {
+		panic("token already exists")
+	}
+
 	idx := len(m.vocab)
 
 	m.vocab = append(m.vocab, token)

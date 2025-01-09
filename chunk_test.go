@@ -55,35 +55,53 @@ func TestChunk_TrackedMerge(t *testing.T) {
 		t.Errorf("expected %d changes but got %d\n", 3, len(changes))
 	}
 
-	if delta, ok := changes[[2]string{"Ġ", "t"}]; !ok || delta != -1 {
+	if change, ok := changes[[2]string{"Ġ", "t"}]; !ok || change.delta != -1 {
 		if !ok {
 			t.Errorf("expected change not found\n")
 		} else {
-			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+			t.Errorf("expected delta %d but got %d\n", -1, int(change.delta))
 		}
 	}
 
-	if delta, ok := changes[[2]string{"Ġ", "t"}]; !ok || delta != -1 {
+	if change, ok := changes[[2]string{"Ġ", "t"}]; !ok || change.delta != -1 || change.update {
 		if !ok {
 			t.Errorf("expected change not found\n")
-		} else {
-			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+		}
+
+		if change.delta != -1 {
+			t.Errorf("expected delta %d but got %d\n", -1, int(change.delta))
+		}
+
+		if change.update {
+			t.Errorf("expected update to be false\n")
 		}
 	}
 
-	if delta, ok := changes[[2]string{"t", "h"}]; !ok || delta != -1 {
+	if change, ok := changes[[2]string{"t", "h"}]; !ok || change.delta != -1 || !change.update {
 		if !ok {
 			t.Errorf("expected change not found\n")
-		} else {
-			t.Errorf("expected delta %d but got %d\n", -1, int(delta))
+		}
+
+		if change.delta != -1 {
+			t.Errorf("expected delta %d but got %d\n", -1, int(change.delta))
+		}
+
+		if !change.update {
+			t.Errorf("expected update to be true\n")
 		}
 	}
 
-	if delta, ok := changes[[2]string{"Ġt", "h"}]; !ok || delta != 1 {
+	if change, ok := changes[[2]string{"Ġt", "h"}]; !ok || change.delta != 1 || change.update {
 		if !ok {
 			t.Errorf("expected change not found\n")
-		} else {
-			t.Errorf("expected delta %d but got %d\n", 1, int(delta))
+		}
+
+		if change.delta != 1 {
+			t.Errorf("expected delta %d but got %d\n", 1, int(change.delta))
+		}
+
+		if change.update {
+			t.Errorf("expected update to be false\n")
 		}
 	}
 }
