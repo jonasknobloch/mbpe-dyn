@@ -163,9 +163,9 @@ func (t *MBPETrainer) Train(name string) error {
 		delete(pairPositions, pair)
 	}
 
-	pb2 := NewProgressBar("Compute merges", 40, t.vocabSize-len(t.model.atoi), time.Now())
+	pb2 := NewProgressBar("Compute merges", 40, t.vocabSize-t.model.Len(), time.Now())
 
-	for len(t.model.atoi) < t.vocabSize && queue.Len() != 0 {
+	for t.model.Len() < t.vocabSize && queue.Len() != 0 {
 		top := heap.Pop(queue).(Merge)
 
 		if top.weight != mergeWeights[top.pair] {
