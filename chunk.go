@@ -53,6 +53,28 @@ func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
 	}
 }
 
+func (c *Chunk) Split(splits []string) {
+	var morphs []int
+
+	if len(splits) > 1 {
+		morphs = make([]int, 0)
+
+		i := 0
+
+		for _, sub := range splits[:len(splits)-1] {
+			i += len(sub)
+
+			morphs = append(morphs, i)
+		}
+	}
+
+	c.morphs = morphs
+}
+
+func (c *Chunk) Alpha(alpha float64) {
+	c.alpha = alpha
+}
+
 func (c *Chunk) Pairs() ([]Pair, []float64) {
 	pairs := make([]Pair, len(c.bounds)-2)
 	clashes := make([]bool, len(c.bounds)-2)

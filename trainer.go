@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"container/heap"
+	"context"
 	"fmt"
 	"mbpe-dyn/morfessor"
 	"os"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -18,7 +18,7 @@ type MBPETrainer struct {
 	morfessor    *morfessor.Model
 	alpha        float64
 	vocabSize    int
-	dict         map[string]*Chunk
+	dict         *Dict
 }
 
 func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, celex *CELEX, morfessor *morfessor.Model, alpha float64, vocabSize int) *MBPETrainer {
@@ -33,64 +33,53 @@ func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, celex *CELEX, morfes
 		morfessor:    morfessor,
 		alpha:        alpha,
 		vocabSize:    vocabSize,
-		dict:         make(map[string]*Chunk),
+		dict:         NewDict(),
 	}
 }
 
 func (t *MBPETrainer) InitDict(name string) error {
-	file, err := os.Open(name)
+	lines, err := countLines(name)
 
 	if err != nil {
 		return err
 	}
 
-	defer file.Close()
+	pb := NewProgressBar("Pre-process files", 20, lines, time.Now())
 
-	scanner := bufio.NewScanner(file)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if atEOF && len(data) == 0 {
-			return 0, nil, nil
-		}
+	defer cancel()
 
-		if i := strings.IndexAny(string(data), "\r\n"); i >= 0 {
-			if i+1 < len(data) && data[i] == '\r' && data[i+1] == '\n' {
-				return i + 2, data[0 : i+2], nil
-			}
+	done := make(chan struct{})
 
-			return i + 1, data[0 : i+1], nil
-		}
+	go func(ctx context.Context) {
+	main:
+		for {
+			select {
+			case <-ctx.Done():
+				break main
+			default:
+				time.Sleep(time.Second * 1)
 
-		if atEOF {
-			return len(data), data, nil
-		}
+				l := t.dict.Lines()
 
-		return 0, nil, nil
-	})
+				pb.Update(l)
+				pb.Print()
 
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if err := scanner.Err(); err != nil {
-			return err
-		}
-
-		compounds := t.preTokenizer.PreTokenize(line)
-
-		for _, compound := range compounds {
-			if _, ok := t.dict[compound]; !ok {
-				split, ok := t.celex.Split(compound)
-
-				if !ok {
-					split, _ = t.morfessor.Segment(compound)
+				if l >= lines {
+					break main
 				}
-
-				t.dict[compound] = NewChunk(compound, 0, split, t.alpha)
 			}
-
-			t.dict[compound].n += 1
 		}
-	}
+
+		pb.Finish()
+
+		close(done)
+	}(ctx)
+
+	t.dict.ProcessFiles(name)
+
+	<-done
 
 	return nil
 }
@@ -101,16 +90,7 @@ func (t *MBPETrainer) AddToken(left, right string) {
 }
 
 func (t *MBPETrainer) Train(name string) error {
-	pb0 := NewProgressBar("Pre-process files", 40, 1, time.Now())
-
 	if err := t.InitDict(name); err != nil {
-		return err
-	}
-
-	pb0.Update()
-	pb0.Finish()
-
-	if err := t.SaveDict("dict.txt"); err != nil {
 		return err
 	}
 
@@ -122,16 +102,30 @@ func (t *MBPETrainer) Train(name string) error {
 
 	t.model.InitMerges(k)
 
-	var chunks = make([]Chunk, 0, len(t.dict))
+	chunks := t.dict.Items()
 
-	for _, chunk := range t.dict {
-		chunks = append(chunks, *chunk)
+	pbSplit := NewProgressBar("Split chunks", 20, len(chunks), time.Now())
+
+	for i := range chunks {
+		split, ok := t.celex.Split(chunks[i].src)
+
+		if !ok {
+			split, _ = t.morfessor.Segment(chunks[i].src)
+		}
+
+		chunks[i].Split(split)
+		chunks[i].Alpha(t.alpha)
+
+		pbSplit.Increment()
+		pbSplit.Print()
 	}
+
+	pbSplit.Finish()
 
 	var mergeWeights = make(map[Pair]float64) // pair_counts
 	var pairPositions = make(map[Pair][]int)  // where_to_update
 
-	pb1 := NewProgressBar("Initialize pairs", 40, len(chunks), time.Now())
+	pbPairs := NewProgressBar("Initialize pairs", 20, len(chunks), time.Now())
 
 	for i, chunk := range chunks {
 		pairs, weights := chunk.Pairs()
@@ -149,10 +143,11 @@ func (t *MBPETrainer) Train(name string) error {
 			pairPositions[pair] = append(pairPositions[pair], i)
 		}
 
-		pb1.Update()
+		pbPairs.Increment()
+		pbPairs.Print()
 	}
 
-	pb1.Finish()
+	pbPairs.Finish()
 
 	queue := NewQueue(make([]Merge, 0))
 
@@ -172,7 +167,7 @@ func (t *MBPETrainer) Train(name string) error {
 		delete(pairPositions, pair)
 	}
 
-	pb2 := NewProgressBar("Compute merges", 40, t.vocabSize-t.model.Len(), time.Now())
+	pbMerges := NewProgressBar("Compute merges", 20, t.vocabSize-t.model.Len(), time.Now())
 
 	for t.model.Len() < t.vocabSize && queue.Len() != 0 {
 		top := heap.Pop(queue).(Merge)
@@ -229,10 +224,11 @@ func (t *MBPETrainer) Train(name string) error {
 			delete(pairPositions, pair)
 		}
 
-		pb2.Update()
+		pbMerges.Increment()
+		pbMerges.Print()
 	}
 
-	pb2.Finish()
+	pbMerges.Finish()
 
 	return nil
 }
@@ -242,7 +238,7 @@ func (t *MBPETrainer) InitVocab() {
 
 	// TODO side effects of byte replacements on strings.Split(..., "")
 
-	for _, chunk := range t.dict {
+	for _, chunk := range t.dict.items {
 		for _, token := range chunk.Tokens() {
 			if _, ok := tokens[token]; !ok {
 				tokens[token] = 0
@@ -265,36 +261,6 @@ func (t *MBPETrainer) InitVocab() {
 	for _, token := range alphabet {
 		t.model.AddToken(token)
 	}
-}
-
-func (t *MBPETrainer) SaveDict(name string) error {
-	order := make([]string, 0, len(t.dict))
-
-	for token := range t.dict {
-		order = append(order, token)
-	}
-
-	sort.Slice(order, func(i, j int) bool {
-		if t.dict[order[i]].n != t.dict[order[j]].n {
-			return t.dict[order[i]].n > t.dict[order[j]].n
-		}
-
-		return t.dict[order[i]].src < t.dict[order[j]].src
-	})
-
-	if err := toFile(name, func(writer *bufio.Writer) error {
-		for _, key := range order {
-			if _, err := writer.WriteString(fmt.Sprintf("%s %d\n", t.dict[key].src, t.dict[key].n)); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func saveMergeFrame(name string, frame []Merge) error {

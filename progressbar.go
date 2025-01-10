@@ -31,13 +31,12 @@ func (p *ProgressBar) Increment() {
 	p.n++
 }
 
-func (p *ProgressBar) Print() {
-	fmt.Print(p.String())
+func (p *ProgressBar) Update(steps int) {
+	p.n = steps
 }
 
-func (p *ProgressBar) Update() {
-	p.Increment()
-	p.Print()
+func (p *ProgressBar) Print() {
+	fmt.Print(p.String())
 }
 
 func (p *ProgressBar) Finish() {

@@ -58,6 +58,10 @@ func train() {
 	if err := model.Save("vocab.json", "merges.txt"); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := trainer.dict.Save("dict.txt"); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func trainReference() {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"sync"
 )
 
 func fromFile(name string, callback func(scanner *bufio.Scanner) error) error {
@@ -80,4 +81,60 @@ func toJSON(name string, data interface{}) error {
 	}
 
 	return nil
+}
+
+func countLines(names ...string) (int, error) {
+	var wg sync.WaitGroup
+
+	results := make(chan int, len(names))
+	errors := make(chan error, len(names))
+
+	// Start a goroutine for each file
+	for _, name := range names {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			var scanner *bufio.Scanner
+
+			if file, err := os.Open(name); err != nil {
+				results <- 0
+				errors <- err
+
+				return
+			} else {
+				scanner = bufio.NewScanner(file)
+
+				defer file.Close()
+			}
+
+			count := 0
+
+			for scanner.Scan() {
+				count++
+			}
+
+			if err := scanner.Err(); err != nil {
+				results <- 0
+				errors <- err
+
+				return
+			}
+
+			results <- count
+		}()
+	}
+
+	wg.Wait()
+
+	close(results)
+	close(errors)
+
+	total := 0
+
+	for count := range results {
+		total += count
+	}
+
+	return total, <-errors
 }
