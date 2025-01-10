@@ -50,7 +50,7 @@ func (c *CELEX) Init(name string) {
 	}
 }
 
-func (c *CELEX) Split(text string) []string {
+func (c *CELEX) Split(text string) ([]string, bool) {
 	prefixSpace := strings.HasPrefix(text, "Ġ")
 
 	if prefixSpace {
@@ -67,5 +67,5 @@ func (c *CELEX) Split(text string) []string {
 		substrings[0] = "Ġ" + substrings[0]
 	}
 
-	return substrings
+	return substrings, ok
 }
