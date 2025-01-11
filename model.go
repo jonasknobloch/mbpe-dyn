@@ -16,6 +16,7 @@ type MBPE struct {
 	atoi   map[string]int
 	itoa   map[int]string
 	merges [][2]string
+	ranks  map[[2]string]int
 }
 
 func NewMBPE() *MBPE {
@@ -31,6 +32,8 @@ func (m *MBPE) InitVocab(n int) {
 
 func (m *MBPE) InitMerges(n int) {
 	m.merges = make([][2]string, 0, n)
+
+	m.ranks = make(map[[2]string]int, n)
 }
 
 func (m *MBPE) Len() int {
@@ -55,50 +58,49 @@ func (m *MBPE) AddToken(token string) {
 }
 
 func (m *MBPE) AddMerge(left, right string) {
+	if _, ok := m.ranks[[2]string{left, right}]; ok {
+		panic("merge already exists")
+	}
+
+	idx := len(m.merges)
+
 	m.merges = append(m.merges, [2]string{left, right})
+
+	m.ranks[[2]string{left, right}] = idx
 }
 
 func (m *MBPE) Tokenize(phrase string) []int {
-	// pairs := make([]string, 0, len(chunk)-1)
-	//
-	// for i := 0; i < len(chunk)-1; i++ {
-	// 	pairs = append(pairs, string(chunk[i]) + string(chunk[i+1]))
-	// }
-
 	c := NewChunk(phrase, 1, nil, 0)
 
-	var tokenize func()
-
-	tokenize = func() {
-		pairs := make([][2]string, len(c.bounds)-2)
-
-		for i := 0; i < len(c.bounds)-2; i++ {
-			pairs[i] = [2]string{
-				c.src[c.bounds[i]:c.bounds[i+1]],
-				c.src[c.bounds[i+1]:c.bounds[i+2]],
-			}
-		}
+	for {
+		pairs := c.Pairs()
 
 		if len(pairs) == 0 {
-			return
+			break
 		}
 
-		for _, merge := range m.merges {
-			for _, pair := range pairs {
-				if merge == pair {
-					c.MergePair(pair[0], pair[1])
+		idx := -1
+		rank := -1
 
-					tokenize()
+		for i, pair := range pairs {
+			r, ok := m.ranks[pair]
 
-					return
-				}
+			if !ok {
+				continue
+			}
+
+			if idx == -1 || r < rank {
+				idx = i
+				rank = r
 			}
 		}
 
-		return
-	}
+		if idx == -1 {
+			break
+		}
 
-	tokenize()
+		c.MergePairIdx(idx)
+	}
 
 	r := make([]int, len(c.bounds)-1)
 
@@ -197,10 +199,17 @@ func (m *MBPE) Load(vocab, merges string) error {
 		return err
 	}
 
+	ranks := make(map[[2]string]int, len(ms))
+
+	for i, merge := range ms {
+		ranks[merge] = i
+	}
+
 	m.vocab = vs
 	m.atoi = atoi
 	m.itoa = itoa
 	m.merges = ms
+	m.ranks = ranks
 
 	return nil
 }

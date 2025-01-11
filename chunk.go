@@ -75,9 +75,24 @@ func (c *Chunk) Alpha(alpha float64) {
 	c.alpha = alpha
 }
 
-func (c *Chunk) Pairs() ([]Pair, []float64) {
+func (c *Chunk) Pairs() []Pair {
 	pairs := make([]Pair, len(c.bounds)-2)
-	clashes := make([]bool, len(c.bounds)-2)
+
+	for i := 0; i < len(c.bounds)-2; i++ {
+		pairs[i] = Pair{
+			c.src[c.bounds[i]:c.bounds[i+1]],
+			c.src[c.bounds[i+1]:c.bounds[i+2]],
+		}
+	}
+
+	return pairs
+}
+
+func (c *Chunk) WeightedPairs() ([]Pair, []float64) {
+	pairs := c.Pairs()
+
+	clashes := make([]bool, len(pairs))
+	nClashes := 0
 
 	for i := 0; i < len(c.bounds)-2; i++ {
 		lower := c.bounds[i]
@@ -86,30 +101,14 @@ func (c *Chunk) Pairs() ([]Pair, []float64) {
 		for _, b := range c.morphs {
 			if b > lower && b < upper {
 				clashes[i] = true
+				nClashes++
 
 				break
 			}
 		}
-
-		pairs[i] = Pair{
-			c.src[c.bounds[i]:c.bounds[i+1]],
-			c.src[c.bounds[i+1]:c.bounds[i+2]],
-		}
 	}
 
 	weights := make([]float64, len(pairs))
-
-	nclashes := func() float64 {
-		r := 0
-
-		for _, b := range clashes {
-			if b {
-				r++
-			}
-		}
-
-		return float64(r)
-	}()
 
 	for i := range pairs {
 		sum := float64(1)
@@ -118,7 +117,7 @@ func (c *Chunk) Pairs() ([]Pair, []float64) {
 			sum -= c.alpha
 		}
 
-		sum += nclashes * c.alpha / float64(len(pairs))
+		sum += float64(nClashes) * c.alpha / float64(len(pairs))
 
 		weights[i] = sum
 	}
@@ -155,11 +154,11 @@ func (c *Chunk) MergePair(left, right string) {
 func (c *Chunk) TrackedMerge(merge Merge) map[Pair]Change {
 	changes := make(map[Pair]Change)
 
-	pairsBefore, weightsBefore := c.Pairs()
+	pairsBefore, weightsBefore := c.WeightedPairs()
 
 	c.MergePair(merge.pair[0], merge.pair[1])
 
-	pairsAfter, weightsAfter := c.Pairs()
+	pairsAfter, weightsAfter := c.WeightedPairs()
 
 	before := make(map[Pair]float64)
 	after := make(map[Pair]float64)

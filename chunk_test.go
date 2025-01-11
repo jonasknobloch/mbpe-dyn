@@ -8,7 +8,17 @@ import (
 func TestChunk_Pairs(t *testing.T) {
 	c := NewChunk("Ġthth", 2, nil, 1)
 
-	pairs, weights := c.Pairs()
+	pairs := c.Pairs()
+
+	fmt.Println(pairs)
+
+	// TODO implement
+}
+
+func TestChunk_WeightedPairs(t *testing.T) {
+	c := NewChunk("Ġthth", 2, nil, 1)
+
+	pairs, weights := c.WeightedPairs()
 
 	fmt.Println(pairs, weights)
 

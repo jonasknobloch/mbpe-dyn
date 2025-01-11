@@ -128,7 +128,7 @@ func (t *MBPETrainer) Train(name string) error {
 	pbPairs := NewProgressBar("Initialize pairs", 20, len(chunks), time.Now())
 
 	for i, chunk := range chunks {
-		pairs, weights := chunk.Pairs()
+		pairs, weights := chunk.WeightedPairs()
 
 		for j, pair := range pairs {
 			if _, ok := mergeWeights[pair]; !ok {
