@@ -89,6 +89,8 @@ func (m *MBPE) Tokenize(phrase string) []int {
 					c.MergePair(pair[0], pair[1])
 
 					tokenize()
+
+					return
 				}
 			}
 		}
