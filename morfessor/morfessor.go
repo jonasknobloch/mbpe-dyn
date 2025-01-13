@@ -6,7 +6,6 @@ import (
 	"math"
 	pb "mbpe-dyn/morfessor/proto"
 	"os"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -18,7 +17,7 @@ func NewModel() *Model {
 	return &Model{}
 }
 
-func (m *Model) Init(name string) error {
+func (m *Model) LoadModel(name string) error {
 	model, err := decodeModel(name)
 
 	if err != nil {
@@ -31,31 +30,7 @@ func (m *Model) Init(name string) error {
 }
 
 func (m *Model) Segment(compound string) ([]string, float64) {
-	prefixSpace := strings.HasPrefix(compound, "Ġ")
-
-	if prefixSpace {
-		compound = compound[len("Ġ"):]
-	}
-
-	substrings, count := viterbiSegment(m.model, compound, 0.0, 30)
-
-	if prefixSpace {
-		substrings[0] = "Ġ" + substrings[0]
-	}
-
-	singles := 0
-
-	for _, s := range substrings {
-		if utf8.RuneCountInString(s) == 1 {
-			singles++
-		}
-
-		if singles == 2 {
-			return []string{compound}, math.NaN()
-		}
-	}
-
-	return substrings, count
+	return viterbiSegment(m.model, compound, 0.0, 30)
 }
 
 func decodeModel(name string) (*pb.BaselineModel, error) {

@@ -6,7 +6,6 @@ import (
 	sbpe "github.com/sugarme/tokenizer/model/bpe"
 	spre "github.com/sugarme/tokenizer/pretokenizer"
 	"log"
-	"mbpe-dyn/morfessor"
 )
 
 func main() {
@@ -41,15 +40,21 @@ func train() {
 
 	preTokenizer := NewByteLevel(true)
 
-	celex := NewCELEX()
+	static := NewStatic()
 
-	celex.Init("data/en.splits.tsv")
+	if err := static.LoadDict("data/en.splits.tsv"); err != nil {
+		log.Fatal(err)
+	}
 
-	morf := morfessor.NewModel()
+	morfessor := NewMorfessor()
 
-	morf.Init("data/morfessor/semisup_model.proto")
+	if err := morfessor.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
+		log.Fatal(err)
+	}
 
-	trainer := NewMBPETrainer(preTokenizer, model, celex, morf, 0.5, 5000)
+	segmenter := NewSequence(static, morfessor)
+
+	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 0.5, 5000)
 
 	if err := trainer.Train("data/shakespeare.txt"); err != nil {
 		log.Fatal(err)

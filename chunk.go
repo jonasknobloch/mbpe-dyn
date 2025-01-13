@@ -53,15 +53,15 @@ func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
 	}
 }
 
-func (c *Chunk) Split(splits []string) {
+func (c *Chunk) Split(segments []string) {
 	var morphs []int
 
-	if len(splits) > 1 {
+	if len(segments) > 1 {
 		morphs = make([]int, 0)
 
 		i := 0
 
-		for _, sub := range splits[:len(splits)-1] {
+		for _, sub := range segments[:len(segments)-1] {
 			i += len(sub)
 
 			morphs = append(morphs, i)

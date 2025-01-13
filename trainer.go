@@ -5,7 +5,6 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
-	"mbpe-dyn/morfessor"
 	"os"
 	"sort"
 	"time"
@@ -13,24 +12,22 @@ import (
 
 type MBPETrainer struct {
 	preTokenizer PreTokenizer
+	segmenter    Segmenter
 	model        *MBPE
-	celex        *CELEX
-	morfessor    *morfessor.Model
 	alpha        float64
 	vocabSize    int
 	dict         *Dict
 }
 
-func NewMBPETrainer(preTokenizer PreTokenizer, model *MBPE, celex *CELEX, morfessor *morfessor.Model, alpha float64, vocabSize int) *MBPETrainer {
+func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE, alpha float64, vocabSize int) *MBPETrainer {
 	if alpha < 0 || alpha > 1 {
 		panic("alpha must be in [0, 1]")
 	}
 
 	return &MBPETrainer{
 		preTokenizer: preTokenizer,
+		segmenter:    segmenter,
 		model:        model,
-		celex:        celex,
-		morfessor:    morfessor,
 		alpha:        alpha,
 		vocabSize:    vocabSize,
 		dict:         NewDict(),
@@ -104,16 +101,12 @@ func (t *MBPETrainer) Train(name string) error {
 
 	chunks := t.dict.Items()
 
-	pbSplit := NewProgressBar("Split chunks", 20, len(chunks), time.Now())
+	pbSplit := NewProgressBar("Segment chunks", 20, len(chunks), time.Now())
 
 	for i := range chunks {
-		split, ok := t.celex.Split(chunks[i].src)
+		segments, _ := SegmentWithoutPrefixWhitespace(chunks[i].src, t.segmenter)
 
-		if !ok {
-			split, _ = t.morfessor.Segment(chunks[i].src)
-		}
-
-		chunks[i].Split(split)
+		chunks[i].Split(segments)
 		chunks[i].Alpha(t.alpha)
 
 		pbSplit.Increment()

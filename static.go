@@ -3,26 +3,27 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
-	"log"
 	"os"
 	"strings"
 )
 
-type CELEX struct {
+type Static struct {
 	dict map[string][]string
 }
 
-func NewCELEX() *CELEX {
-	return &CELEX{
+func NewStatic() *Static {
+	return &Static{
 		dict: make(map[string][]string),
 	}
 }
 
-func (c *CELEX) Init(name string) {
-	file, err := os.Open(name)
+func (c *Static) LoadDict(name string) error {
+	var file *os.File
 
-	if err != nil {
-		log.Fatal(err)
+	if f, err := os.Open(name); err != nil {
+		return err
+	} else {
+		file = f
 	}
 
 	defer file.Close()
@@ -39,7 +40,7 @@ func (c *CELEX) Init(name string) {
 				break
 			}
 
-			log.Fatal(err)
+			return err
 		}
 
 		if len(record) != 2 {
@@ -48,23 +49,15 @@ func (c *CELEX) Init(name string) {
 
 		c.dict[record[0]] = strings.Split(record[1], " ")
 	}
+
+	return nil
 }
 
-func (c *CELEX) Split(text string) ([]string, bool) {
-	prefixSpace := strings.HasPrefix(text, "Ġ")
-
-	if prefixSpace {
-		text = text[len("Ġ"):]
-	}
-
+func (c *Static) Segment(text string) ([]string, bool) {
 	substrings, ok := c.dict[text]
 
 	if !ok {
 		substrings = []string{text}
-	}
-
-	if prefixSpace {
-		substrings[0] = "Ġ" + substrings[0]
 	}
 
 	return substrings, ok
