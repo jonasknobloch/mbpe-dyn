@@ -70,6 +70,10 @@ func (m *MBPE) AddMerge(left, right string) {
 }
 
 func (m *MBPE) Tokenize(phrase string) []int {
+	return m.tokenize(phrase, nil)
+}
+
+func (m *MBPE) tokenize(phrase string, merges *[]int) []int {
 	c := NewChunk(phrase, 1, nil, 0)
 
 	for {
@@ -97,6 +101,10 @@ func (m *MBPE) Tokenize(phrase string) []int {
 
 		if idx == -1 {
 			break
+		}
+
+		if merges != nil {
+			*merges = append(*merges, idx)
 		}
 
 		c.MergePairIdx(idx)
