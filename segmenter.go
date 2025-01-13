@@ -3,19 +3,19 @@ package main
 import "strings"
 
 type Segmenter interface {
-	Segment(string) ([]string, bool)
+	Segment(string) ([]string, float64)
 }
 
-func SegmentWithoutPrefixWhitespace(compound string, segmenter Segmenter) ([]string, bool) {
+func SegmentWithoutPrefixWhitespace(compound string, segmenter Segmenter) ([]string, float64) {
 	removedPrefixSpace := stripPrefixWhitespace(&compound)
 
-	substrings, ok := segmenter.Segment(compound)
+	substrings, alpha := segmenter.Segment(compound)
 
 	if removedPrefixSpace {
 		addPrefixWhitespace(&substrings)
 	}
 
-	return substrings, ok
+	return substrings, alpha
 }
 
 func stripPrefixWhitespace(compound *string) bool {

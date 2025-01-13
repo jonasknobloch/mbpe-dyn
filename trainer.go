@@ -14,21 +14,15 @@ type MBPETrainer struct {
 	preTokenizer PreTokenizer
 	segmenter    Segmenter
 	model        *MBPE
-	alpha        float64
 	vocabSize    int
 	dict         *Dict
 }
 
-func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE, alpha float64, vocabSize int) *MBPETrainer {
-	if alpha < 0 || alpha > 1 {
-		panic("alpha must be in [0, 1]")
-	}
-
+func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE, vocabSize int) *MBPETrainer {
 	return &MBPETrainer{
 		preTokenizer: preTokenizer,
 		segmenter:    segmenter,
 		model:        model,
-		alpha:        alpha,
 		vocabSize:    vocabSize,
 		dict:         NewDict(),
 	}
@@ -104,10 +98,10 @@ func (t *MBPETrainer) Train(name string) error {
 	pbSplit := NewProgressBar("Segment chunks", 20, len(chunks), time.Now())
 
 	for i := range chunks {
-		segments, _ := SegmentWithoutPrefixWhitespace(chunks[i].src, t.segmenter)
+		segments, alpha := SegmentWithoutPrefixWhitespace(chunks[i].src, t.segmenter)
 
 		chunks[i].Split(segments)
-		chunks[i].Alpha(t.alpha)
+		chunks[i].Alpha(alpha)
 
 		pbSplit.Increment()
 		pbSplit.Print()

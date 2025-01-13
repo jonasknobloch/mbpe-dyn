@@ -6,21 +6,21 @@ func NewSequence(segmenters ...Segmenter) *Sequence {
 	return (*Sequence)(&segmenters)
 }
 
-func (s Sequence) Segment(compound string) ([]string, bool) {
+func (s Sequence) Segment(compound string) ([]string, float64) {
 	if len(s) == 0 {
-		return []string{compound}, false
+		return []string{compound}, 0
 	}
 
 	var segments []string
-	var ok bool
+	var alpha float64
 
 	for _, segmenter := range s {
-		segments, ok = segmenter.Segment(compound)
+		segments, alpha = segmenter.Segment(compound)
 
-		if ok {
-			return segments, true
+		if alpha > 0 {
+			return segments, alpha
 		}
 	}
 
-	return []string{compound}, false
+	return []string{compound}, 0
 }

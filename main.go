@@ -40,13 +40,13 @@ func train() {
 
 	preTokenizer := NewByteLevel(true)
 
-	static := NewStatic()
+	static := NewStatic(0.5)
 
 	if err := static.LoadDict("data/en.splits.tsv"); err != nil {
 		log.Fatal(err)
 	}
 
-	morfessor := NewMorfessor()
+	morfessor := NewMorfessor(0.5)
 
 	if err := morfessor.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
 		log.Fatal(err)
@@ -54,7 +54,7 @@ func train() {
 
 	segmenter := NewSequence(static, morfessor)
 
-	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 0.5, 5000)
+	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 5000)
 
 	if err := trainer.Train("data/shakespeare.txt"); err != nil {
 		log.Fatal(err)
