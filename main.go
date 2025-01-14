@@ -9,7 +9,33 @@ import (
 )
 
 func main() {
-	tokenize()
+	// tokenize()
+	eval()
+}
+
+func eval() {
+	mbpe := NewMBPE()
+
+	if err := mbpe.Load("out/00/vocab.json", "out/00/merges.txt"); err != nil {
+		log.Fatal(err)
+	}
+
+	tokenizer := NewTokenizer(mbpe)
+
+	byteLevel := NewByteLevel(true)
+
+	tokenizer.SetPreTokenizer(byteLevel)
+	tokenizer.SetDecoder(byteLevel)
+
+	bpr := NewBoundaryPrecisionRecall(false, false, true)
+
+	if err := bpr.LoadDict("data/goldstd_trainset.segmentation.eng.tsv"); err != nil {
+		log.Fatal(err)
+	}
+
+	bpr.Eval(tokenizer)
+
+	Fertility(tokenizer)
 }
 
 func tokenize() {

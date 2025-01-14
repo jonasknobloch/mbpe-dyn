@@ -69,7 +69,43 @@ func (m *MBPE) AddMerge(left, right string) {
 	m.ranks[[2]string{left, right}] = idx
 }
 
+func (m *MBPE) TokenizeLayered(phrase string) [][]int {
+	merges := make([]int, 0)
+
+	m.tokenize(phrase, &merges)
+
+	c := NewChunk(phrase, 1, nil, 0)
+
+	r := make([][]int, len(merges))
+
+	for i, pos := range merges {
+		c.MergePairIdx(pos)
+
+		tokens := c.Tokens()
+
+		layer := make([]int, len(tokens))
+
+		for j, token := range tokens {
+			idx, ok := m.atoi[token]
+
+			if !ok {
+				panic("unknown token")
+			}
+
+			layer[j] = idx
+		}
+
+		r[i] = layer
+	}
+
+	return r
+}
+
 func (m *MBPE) Tokenize(phrase string) []int {
+	return m.tokenize(phrase, nil)
+}
+
+func (m *MBPE) tokenize(phrase string, merges *[]int) []int {
 	c := NewChunk(phrase, 1, nil, 0)
 
 	for {
@@ -97,6 +133,10 @@ func (m *MBPE) Tokenize(phrase string) []int {
 
 		if idx == -1 {
 			break
+		}
+
+		if merges != nil {
+			*merges = append(*merges, idx)
 		}
 
 		c.MergePairIdx(idx)

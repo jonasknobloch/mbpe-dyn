@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"encoding/json"
 	"os"
 	"sync"
@@ -137,4 +138,42 @@ func countLines(names ...string) (int, error) {
 	}
 
 	return total, <-errors
+}
+
+func readTsv(name string, callback func([]string) error) error {
+	var file *os.File
+
+	if f, err := os.Open(name); err != nil {
+		return err
+	} else {
+		file = f
+	}
+
+	defer file.Close()
+
+	bufferedReader := bufio.NewReader(file)
+
+	reader := csv.NewReader(bufferedReader)
+
+	reader.Comma = '\t'
+
+	for {
+		var record []string
+
+		if r, err := reader.Read(); err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+
+			return err
+		} else {
+			record = r
+		}
+
+		if err := callback(record); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

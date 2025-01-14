@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"encoding/csv"
-	"os"
+	"errors"
 	"strings"
 )
 
@@ -24,39 +22,15 @@ func NewStatic(alpha float64) *Static {
 }
 
 func (c *Static) LoadDict(name string) error {
-	var file *os.File
-
-	if f, err := os.Open(name); err != nil {
-		return err
-	} else {
-		file = f
-	}
-
-	defer file.Close()
-
-	bufferedReader := bufio.NewReader(file)
-	reader := csv.NewReader(bufferedReader)
-	reader.Comma = '\t'
-
-	for {
-		record, err := reader.Read()
-
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-
-			return err
-		}
-
+	return readTsv(name, func(record []string) error {
 		if len(record) != 2 {
-			panic("Invalid record")
+			return errors.New("unexpected number of fields")
 		}
 
 		c.dict[record[0]] = strings.Split(record[1], " ")
-	}
 
-	return nil
+		return nil
+	})
 }
 
 func (c *Static) Segment(text string) ([]string, float64) {
