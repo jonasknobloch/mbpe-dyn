@@ -28,8 +28,8 @@ func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE,
 	}
 }
 
-func (t *MBPETrainer) InitDict(name string) error {
-	lines, err := countLines(name)
+func (t *MBPETrainer) InitDict(names ...string) error {
+	lines, err := countLines(names...)
 
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (t *MBPETrainer) InitDict(name string) error {
 		close(done)
 	}(ctx)
 
-	t.dict.ProcessFiles(name)
+	t.dict.ProcessFiles(names...)
 
 	<-done
 
@@ -80,8 +80,8 @@ func (t *MBPETrainer) AddToken(left, right string) {
 	t.model.AddMerge(left, right)
 }
 
-func (t *MBPETrainer) Train(name string) error {
-	if err := t.InitDict(name); err != nil {
+func (t *MBPETrainer) Train(names ...string) error {
+	if err := t.InitDict(names...); err != nil {
 		return err
 	}
 
