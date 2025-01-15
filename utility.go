@@ -106,6 +106,10 @@ func countLines(names ...string) (int, error) {
 			} else {
 				scanner = bufio.NewScanner(file)
 
+				buf := make([]byte, 0, 1024*1024)
+
+				scanner.Buffer(buf, 1024*1024)
+
 				defer file.Close()
 			}
 

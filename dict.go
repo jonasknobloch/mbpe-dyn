@@ -87,6 +87,10 @@ main:
 
 		scanner := bufio.NewScanner(file)
 
+		buf := make([]byte, 0, 1024*1024)
+
+		scanner.Buffer(buf, 1024*1024)
+
 		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
 				return 0, nil, nil
