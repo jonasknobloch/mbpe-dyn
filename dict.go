@@ -13,7 +13,7 @@ import (
 type Dict struct {
 	mutex sync.RWMutex
 	items []Chunk
-	lut   map[string]int
+	lut   map[string]int // TODO use sync.Map instead
 	lines int
 }
 

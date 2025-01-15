@@ -81,13 +81,13 @@ func (t *MBPETrainer) AddToken(left, right string) {
 }
 
 func (t *MBPETrainer) Train(names ...string) error {
-	if err := t.InitDict(names...); err != nil {
-		return err
-	}
-
-	// if err := t.dict.Load("out/en-base/dict.txt"); err != nil {
+	// if err := t.InitDict(names...); err != nil {
 	// 	return err
 	// }
+
+	if err := t.dict.Load("out/en-base/dict.txt"); err != nil {
+		return err
+	}
 
 	t.model.InitVocab(t.vocabSize)
 

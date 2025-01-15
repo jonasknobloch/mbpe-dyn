@@ -111,16 +111,38 @@ func (c *Chunk) WeightedPairs() ([]Pair, []float64) {
 	weights := make([]float64, len(pairs))
 
 	for i := range pairs {
-		sum := float64(1)
+		var w float64
 
-		if clashes[i] {
-			sum -= c.alpha
+		if len(pairs) == 1 {
+			if clashes[i] {
+				w = 1 - c.alpha // TODO does this make sense panics otherwise lol
+				// probbaly panics because no weight change ist reqsterd otherwise idk -> verify conditions
+			} else {
+				w = 1
+			}
+
+			weights[i] = w
+			break
 		}
 
-		sum += float64(nClashes) * c.alpha / float64(len(pairs))
+		if clashes[i] {
+			w = (1 - c.alpha) + (c.alpha * float64(nClashes-1) / float64(len(pairs)-1))
+		} else {
+			w = 1 + (c.alpha * float64(nClashes) / float64(len(pairs)-1))
+		}
 
-		weights[i] = sum
+		weights[i] = w
 	}
+
+	sum := 0.0
+
+	for _, w := range weights {
+		sum += w
+	}
+
+	// if sum != float64(len(pairs)) {
+	// 	panic("houston")
+	// }
 
 	for i := range weights {
 		weights[i] *= float64(c.n)
