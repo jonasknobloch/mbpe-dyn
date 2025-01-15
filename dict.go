@@ -156,3 +156,29 @@ func (d *Dict) Save(name string) error {
 
 	return nil
 }
+
+func (d *Dict) Load(name string) error {
+	return fromFile(name, func(scanner *bufio.Scanner) error {
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			if err := scanner.Err(); err != nil {
+				return err
+			}
+
+			var s string
+			var n int
+
+			if _, err := fmt.Sscanf(line, "%s %d", &s, &n); err != nil {
+				return err
+			}
+
+			chunk := NewChunk(s, n, nil, 0)
+
+			d.lut[chunk.src] = len(d.items)
+			d.items = append(d.items, *chunk)
+		}
+
+		return nil
+	})
+}
