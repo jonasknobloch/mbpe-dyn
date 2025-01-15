@@ -76,13 +76,9 @@ func (m *MBPE) TokenizeLayered(phrase string) [][]int {
 
 	c := NewChunk(phrase, 1, nil, 0)
 
-	r := make([][]int, len(merges))
+	r := make([][]int, len(merges)+1)
 
-	for i, pos := range merges {
-		c.MergePairIdx(pos)
-
-		tokens := c.Tokens()
-
+	idx := func(tokens []string) []int {
 		layer := make([]int, len(tokens))
 
 		for j, token := range tokens {
@@ -95,7 +91,15 @@ func (m *MBPE) TokenizeLayered(phrase string) [][]int {
 			layer[j] = idx
 		}
 
-		r[i] = layer
+		return layer
+	}
+
+	r[0] = idx(c.Tokens())
+
+	for i, pos := range merges {
+		c.MergePairIdx(pos)
+
+		r[i+1] = idx(c.Tokens())
 	}
 
 	return r
