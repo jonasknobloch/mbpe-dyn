@@ -21,14 +21,16 @@ type BoundaryPrecisionRecall struct {
 	skipSingletonSegmentations  bool
 	skipSingletonTokens         bool
 	chooseBestTokenizationLayer bool
+	maxRank                     int
 	gold                        [][]string
 }
 
-func NewBoundaryPrecisionRecall(skipSingletonSegmentations, skipSingletonTokens, chooseBestTokenizationLayer bool) *BoundaryPrecisionRecall {
+func NewBoundaryPrecisionRecall(skipSingletonSegmentations, skipSingletonTokens, chooseBestTokenizationLayer bool, maxRank int) *BoundaryPrecisionRecall {
 	return &BoundaryPrecisionRecall{
 		skipSingletonSegmentations:  skipSingletonSegmentations,
 		skipSingletonTokens:         skipSingletonTokens,
 		chooseBestTokenizationLayer: chooseBestTokenizationLayer,
+		maxRank:                     maxRank,
 	}
 }
 
@@ -67,11 +69,12 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 				}
 			}()
 
+			layers := model.TokenizeLayered(word, bpr.maxRank)
+
 			if !bpr.chooseBestTokenizationLayer {
-				return [][]string{model.ToString(model.Tokenize(word))}
+				layers = layers[len(layers)-1:]
 			}
 
-			layers := model.TokenizeLayered(word)
 			result := make([][]string, len(layers))
 
 			for i, layer := range layers {
