@@ -223,6 +223,7 @@ func (m *MBPE) Load(vocab, merges string) error {
 			}
 
 			if err := scanner.Err(); err != nil {
+				return err
 			}
 
 			var merge [2]string
