@@ -69,10 +69,10 @@ func (m *MBPE) AddMerge(left, right string) {
 	m.ranks[[2]string{left, right}] = idx
 }
 
-func (m *MBPE) TokenizeLayered(phrase string) [][]int {
+func (m *MBPE) TokenizeLayered(phrase string, maxRank int) [][]int {
 	merges := make([]int, 0)
 
-	m.tokenize(phrase, &merges)
+	m.tokenize(phrase, &merges, maxRank)
 
 	c := NewChunk(phrase, 1, nil, 0)
 
@@ -106,10 +106,10 @@ func (m *MBPE) TokenizeLayered(phrase string) [][]int {
 }
 
 func (m *MBPE) Tokenize(phrase string) []int {
-	return m.tokenize(phrase, nil)
+	return m.tokenize(phrase, nil, -1)
 }
 
-func (m *MBPE) tokenize(phrase string, merges *[]int) []int {
+func (m *MBPE) tokenize(phrase string, merges *[]int, maxRank int) []int {
 	c := NewChunk(phrase, 1, nil, 0)
 
 	for {
@@ -126,6 +126,10 @@ func (m *MBPE) tokenize(phrase string, merges *[]int) []int {
 			r, ok := m.ranks[pair]
 
 			if !ok {
+				continue
+			}
+
+			if maxRank > -1 && r > maxRank-1 {
 				continue
 			}
 

@@ -27,7 +27,7 @@ func eval() {
 	tokenizer.SetPreTokenizer(byteLevel)
 	tokenizer.SetDecoder(byteLevel)
 
-	bpr := NewBoundaryPrecisionRecall(false, false, true)
+	bpr := NewBoundaryPrecisionRecall(false, false, true, -1)
 
 	if err := bpr.LoadDict("data/goldstd_trainset.segmentation.eng.tsv"); err != nil {
 		log.Fatal(err)
