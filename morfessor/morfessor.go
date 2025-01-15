@@ -30,6 +30,10 @@ func (m *Model) LoadModel(name string) error {
 }
 
 func (m *Model) Segment(compound string) ([]string, float64) {
+	if compound == "" {
+		return []string{""}, 0.0
+	}
+
 	return viterbiSegment(m.model, compound, 0.0, 30)
 }
 
