@@ -18,20 +18,20 @@ const (
 )
 
 type BoundaryPrecisionRecall struct {
-	skipSingletonSegmentations  bool
-	skipSingletonTokens         bool
-	chooseBestTokenizationLayer bool
-	maxRank                     int
-	gold                        [][]string
+	skipSingletonGoldSegmentations bool
+	skipSingletonTestSegmentations bool
+	chooseBestTokenizationLayer    bool
+	maxRank                        int
+	gold                           [][]string
 }
 
-func NewBoundaryPrecisionRecall(skipSingletonSegmentations, skipSingletonTokens, chooseBestTokenizationLayer bool, maxRank int) *BoundaryPrecisionRecall {
+func NewBoundaryPrecisionRecall(skipSingletonGoldSegmentations, skipSingletonTestSegmentations, chooseBestTokenizationLayer bool, maxRank int) *BoundaryPrecisionRecall {
 	return &BoundaryPrecisionRecall{
-		skipSingletonSegmentations:  skipSingletonSegmentations,
-		skipSingletonTokens:         skipSingletonTokens,
-		chooseBestTokenizationLayer: chooseBestTokenizationLayer,
-		maxRank:                     maxRank,
-		gold:                        make([][]string, 0),
+		skipSingletonGoldSegmentations: skipSingletonGoldSegmentations,
+		skipSingletonTestSegmentations: skipSingletonTestSegmentations,
+		chooseBestTokenizationLayer:    chooseBestTokenizationLayer,
+		maxRank:                        maxRank,
+		gold:                           make([][]string, 0),
 	}
 }
 
@@ -56,7 +56,7 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 	model := tokenizer.model.(*MBPE)
 
 	for _, split := range bpr.gold {
-		if bpr.skipSingletonSegmentations && len(split) == 2 {
+		if bpr.skipSingletonGoldSegmentations && len(split) == 2 {
 			continue
 		}
 
@@ -97,7 +97,7 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 			}
 		}
 
-		if bpr.skipSingletonTokens && len(layers[len(layers)-1]) == 1 {
+		if bpr.skipSingletonTestSegmentations && len(layers[len(layers)-1]) == 1 {
 			continue
 		}
 
