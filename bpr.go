@@ -63,10 +63,10 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 		word := "Ġ" + split[0]
 		gold := split[1:]
 
-		tokens := func() [][]string {
+		layers := func() [][]string {
 			defer func() {
 				if r := recover(); r != nil {
-					fmt.Println("unknown tokens in", word)
+					fmt.Println("unknown token in", word)
 				}
 			}()
 
@@ -85,15 +85,23 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 			return result
 		}()
 
-		if tokens == nil {
+		if layers == nil {
 			continue // skip words containing unknown tokens
 		}
 
-		if bpr.skipSingletonTokens && len(tokens[len(tokens)-1]) == 1 {
+		for _, tokens := range layers {
+			if tokens[0] == "Ġ" {
+				tokens = tokens[1:]
+			} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
+				tokens[0] = tokens[0][len("Ġ"):]
+			}
+		}
+
+		if bpr.skipSingletonTokens && len(layers[len(layers)-1]) == 1 {
 			continue
 		}
 
-		_, counts := evalSegmentations(tokens, gold, word, MaxF1)
+		_, counts := evalSegmentations(layers, gold, word, MaxF1)
 
 		tp += counts[0]
 		fp += counts[1]
