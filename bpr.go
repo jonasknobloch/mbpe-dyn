@@ -31,6 +31,7 @@ func NewBoundaryPrecisionRecall(skipSingletonSegmentations, skipSingletonTokens,
 		skipSingletonTokens:         skipSingletonTokens,
 		chooseBestTokenizationLayer: chooseBestTokenizationLayer,
 		maxRank:                     maxRank,
+		gold:                        make([][]string, 0),
 	}
 }
 
