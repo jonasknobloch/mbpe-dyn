@@ -35,7 +35,11 @@ func eval() {
 
 	bpr.Eval(tokenizer)
 
-	Fertility(tokenizer)
+	dict := NewDict()
+
+	dict.ProcessFiles("data/shakespeare.txt")
+
+	Fertility(tokenizer, dict)
 }
 
 func tokenize() {
