@@ -7,7 +7,7 @@ func Fertility(tokenizer *Tokenizer, dict *Dict) {
 	numChunks := 0
 
 	for _, chunk := range dict.Items() {
-		numTokens += len(tokenizer.Tokenize(chunk.src)) * chunk.n
+		numTokens += len(tokenizer.model.Tokenize(chunk.src)) * chunk.n
 		numChunks += chunk.n
 	}
 
