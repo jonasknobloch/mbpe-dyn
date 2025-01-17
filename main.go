@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	stok "github.com/sugarme/tokenizer"
-	sbpe "github.com/sugarme/tokenizer/model/bpe"
-	spre "github.com/sugarme/tokenizer/pretokenizer"
 	"log"
 )
 
@@ -99,37 +96,6 @@ func train() {
 	}
 
 	if err := trainer.dict.Save("dict.txt"); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func trainReference() {
-	files := []string{
-		"data/shakespeare.txt",
-	}
-
-	var vocab = make(map[string]int)
-	var merges = make(map[sbpe.Pair]sbpe.PairVal)
-
-	model := sbpe.NewBPE(vocab, merges)
-
-	trainer := sbpe.NewBpeTrainer(0, 5000)
-
-	tokenizer := stok.NewTokenizer(model)
-
-	preTokenizer := spre.NewByteLevel()
-
-	preTokenizer.SetTrimOffsets(false)
-
-	tokenizer.WithPreTokenizer(preTokenizer)
-
-	if err := tokenizer.Train(trainer, files); err != nil {
-		log.Fatal(err)
-	}
-
-	result := tokenizer.GetModel()
-
-	if err := result.Save("reference"); err != nil {
 		log.Fatal(err)
 	}
 }
