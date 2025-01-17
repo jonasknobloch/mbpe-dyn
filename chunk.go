@@ -88,8 +88,12 @@ func (c *Chunk) Pairs() []Pair {
 	return pairs
 }
 
-func (c *Chunk) WeightedPairs() ([]Pair, []float64) {
+func (c *Chunk) WeightedPairs() ([]Pair, []float64, float64) {
 	pairs := c.Pairs()
+
+	if len(pairs) == 0 {
+		return pairs, []float64{}, 0.0
+	}
 
 	clashes := make([]bool, len(pairs))
 	nClashes := 0
@@ -110,23 +114,30 @@ func (c *Chunk) WeightedPairs() ([]Pair, []float64) {
 
 	weights := make([]float64, len(pairs))
 
+	n := float64(len(weights))
+	k := float64(nClashes)
+
 	for i := range pairs {
-		sum := float64(1)
+		var w float64
 
 		if clashes[i] {
-			sum -= c.alpha
+			w = (1 - c.alpha) + (c.alpha * (k - 1) / n)
+		} else {
+			w = 1 + (c.alpha * k / n)
 		}
 
-		sum += float64(nClashes) * c.alpha / float64(len(pairs))
-
-		weights[i] = sum
+		weights[i] = w
 	}
+
+	epsilon := c.alpha * k / n // no merge
 
 	for i := range weights {
 		weights[i] *= float64(c.n)
 	}
 
-	return pairs, weights
+	epsilon *= float64(c.n)
+
+	return pairs, weights, epsilon
 }
 
 func (c *Chunk) MergePairIdx(i int) {
@@ -151,14 +162,14 @@ func (c *Chunk) MergePair(left, right string) {
 	}
 }
 
-func (c *Chunk) TrackedMerge(merge Merge) map[Pair]Change {
+func (c *Chunk) TrackedMerge(merge Merge) (map[Pair]Change, float64) {
 	changes := make(map[Pair]Change)
 
-	pairsBefore, weightsBefore := c.WeightedPairs()
+	pairsBefore, weightsBefore, epsilonBefore := c.WeightedPairs()
 
 	c.MergePair(merge.pair[0], merge.pair[1])
 
-	pairsAfter, weightsAfter := c.WeightedPairs()
+	pairsAfter, weightsAfter, epsilonAfter := c.WeightedPairs()
 
 	before := make(map[Pair]float64)
 	after := make(map[Pair]float64)
@@ -198,7 +209,7 @@ func (c *Chunk) TrackedMerge(merge Merge) map[Pair]Change {
 		}
 	}
 
-	return changes
+	return changes, epsilonAfter - epsilonBefore
 }
 
 func (c *Chunk) Tokens() []string {

@@ -118,8 +118,12 @@ func (t *MBPETrainer) Train(names ...string) error {
 
 	pbPairs := NewProgressBar("Initialize pairs", 20, len(chunks), time.Now())
 
+	epsilon := float64(0)
+
 	for i, chunk := range chunks {
-		pairs, weights := chunk.WeightedPairs()
+		pairs, weights, delta := chunk.WeightedPairs()
+
+		epsilon += delta
 
 		for j, pair := range pairs {
 			if _, ok := mergeWeights[pair]; !ok {
@@ -182,7 +186,11 @@ func (t *MBPETrainer) Train(names ...string) error {
 		for _, position := range top.positions {
 			chunk := &chunks[position]
 
-			for pair, change := range chunk.TrackedMerge(top) {
+			changes, delta := chunk.TrackedMerge(top)
+
+			epsilon += delta
+
+			for pair, change := range changes {
 				mergeWeights[pair] += change.delta
 
 				if change.delta <= 0 || change.update {
@@ -220,6 +228,8 @@ func (t *MBPETrainer) Train(names ...string) error {
 	}
 
 	pbMerges.Finish()
+
+	fmt.Println("\nepsilon", epsilon)
 
 	return nil
 }
