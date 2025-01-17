@@ -2,18 +2,16 @@ package main
 
 import "fmt"
 
-func Fertility(tokenizer *Tokenizer) {
-	dict := NewDict()
-
-	dict.ProcessFiles("data/shakespeare.txt")
-
+func Fertility(tokenizer *Tokenizer, dict *Dict) {
 	numTokens := 0
+	numChunks := 0
 
 	for _, chunk := range dict.Items() {
-		numTokens += len(tokenizer.Tokenize(chunk.src))
+		numTokens += len(tokenizer.Tokenize(chunk.src)) * chunk.n
+		numChunks += chunk.n
 	}
 
-	f := float64(numTokens) / float64(len(dict.Items()))
+	f := float64(numTokens) / float64(numChunks)
 
 	fmt.Println(f, "fertility")
 }
