@@ -9,36 +9,65 @@ func main() {
 	// tokenize()
 	// eval()
 	// train()
-	CompareStateToReference()
 }
 
 func eval() {
-	mbpe := NewMBPE()
+	initTokenizer := func(vocab, merges string) *Tokenizer {
+		model := NewMBPE()
 
-	if err := mbpe.Load("out/00/vocab.json", "out/00/merges.txt"); err != nil {
-		log.Fatal(err)
+		if err := model.Load(vocab, merges); err != nil {
+			log.Fatal(err)
+		}
+
+		tokenizer := NewTokenizer(model)
+
+		byteLevel := NewByteLevel(true)
+
+		tokenizer.SetPreTokenizer(byteLevel)
+		tokenizer.SetDecoder(byteLevel)
+
+		return tokenizer
 	}
 
-	tokenizer := NewTokenizer(mbpe)
+	runner := NewRunner()
 
-	byteLevel := NewByteLevel(true)
+	runner.AddTokenizer(initTokenizer("out/en-base/vocab.json", "out/en-base/merges.txt"), "en-base")
+	runner.AddTokenizer(initTokenizer("out/en-c050/vocab.json", "out/en-c050/merges.txt"), "en-c050")
+	runner.AddTokenizer(initTokenizer("out/en-c100/vocab.json", "out/en-c100/merges.txt"), "en-c100")
+	runner.AddTokenizer(initTokenizer("out/en-c100-m050/vocab.json", "out/en-c100-m050/merges.txt"), "en-c100-m050")
+	runner.AddTokenizer(initTokenizer("out/en-c100-m100/vocab.json", "out/en-c100-m100/merges.txt"), "en-c100-m100")
 
-	tokenizer.SetPreTokenizer(byteLevel)
-	tokenizer.SetDecoder(byteLevel)
+	runner.AddEvaluator(func() Evaluator {
+		bprEval := NewBPREvaluator()
 
-	bpr := NewBoundaryPrecisionRecall(false, false, true, -1)
+		if err := bprEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
+			log.Fatal(err)
+		}
 
-	if err := bpr.LoadDict("data/goldstd_trainset.segmentation.eng.tsv"); err != nil {
-		log.Fatal(err)
-	}
+		return bprEval
+	}(), "BPR")
 
-	bpr.Eval(tokenizer)
+	runner.AddEvaluator(func() Evaluator {
+		fertilityEval := NewFertilityEvaluator()
 
-	dict := NewDict()
+		if err := fertilityEval.InitDict("data/shakespeare.txt"); err != nil {
+			log.Fatal(err)
+		}
 
-	dict.ProcessFiles("data/shakespeare.txt")
+		return fertilityEval
+	}(), "Fertility")
 
-	Fertility(tokenizer, dict)
+	runner.AddEvaluator(func() Evaluator {
+		refEval := NewReferenceEvaluator()
+
+		if err := refEval.LoadModel("out/en-base/vocab.json", "out/en-base/merges.txt"); err != nil {
+			log.Fatal(err)
+		}
+
+		return refEval
+	}(), "Overlap")
+
+	fmt.Print(runner.RunAll())
 }
 
 func tokenize() {

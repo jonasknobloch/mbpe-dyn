@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-// type Evaluator interface {
-// 	Eval(tokenizer Tokenizer)
-// }
-
 const (
 	MaxPrecision = iota
 	MaxRecall
@@ -17,7 +13,7 @@ const (
 	MaxF1
 )
 
-type BoundaryPrecisionRecall struct {
+type BPREvaluator struct {
 	skipSingletonGoldSegmentations bool
 	skipSingletonTestSegmentations bool
 	chooseBestTokenizationLayer    bool
@@ -25,17 +21,17 @@ type BoundaryPrecisionRecall struct {
 	gold                           [][]string
 }
 
-func NewBoundaryPrecisionRecall(skipSingletonGoldSegmentations, skipSingletonTestSegmentations, chooseBestTokenizationLayer bool, maxRank int) *BoundaryPrecisionRecall {
-	return &BoundaryPrecisionRecall{
-		skipSingletonGoldSegmentations: skipSingletonGoldSegmentations,
-		skipSingletonTestSegmentations: skipSingletonTestSegmentations,
-		chooseBestTokenizationLayer:    chooseBestTokenizationLayer,
-		maxRank:                        maxRank,
+func NewBPREvaluator() *BPREvaluator {
+	return &BPREvaluator{
+		skipSingletonGoldSegmentations: true,
+		skipSingletonTestSegmentations: false,
+		chooseBestTokenizationLayer:    false,
+		maxRank:                        -1,
 		gold:                           make([][]string, 0),
 	}
 }
 
-func (bpr *BoundaryPrecisionRecall) LoadDict(name string) error {
+func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 	return readTsv(name, func(record []string) error {
 		if len(record) != 2 {
 			return errors.New("unexpected number of fields")
@@ -47,7 +43,7 @@ func (bpr *BoundaryPrecisionRecall) LoadDict(name string) error {
 	})
 }
 
-func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
+func (bpr *BPREvaluator) Eval(tokenizer *Tokenizer) ([]float64, error) {
 	tp := 0
 	fp := 0
 	tn := 0
@@ -114,10 +110,7 @@ func (bpr *BoundaryPrecisionRecall) Eval(tokenizer *Tokenizer) {
 	accuracy := float64(tp+tn) / float64(tp+tn+fp+fn)
 	f1 := 2 * precision * recall / (precision + recall)
 
-	fmt.Println(precision, "precision")
-	fmt.Println(recall, "recall")
-	fmt.Println(accuracy, "accuracy")
-	fmt.Println(f1, "f1")
+	return []float64{precision, recall, accuracy, f1}, nil
 }
 
 func evalSegmentations(segmentations [][]string, gold []string, src string, mode int) ([]string, [4]int) {
