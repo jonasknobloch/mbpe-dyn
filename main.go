@@ -10,7 +10,9 @@ import (
 
 func main() {
 	// tokenize()
-	eval()
+	// eval()
+	// train()
+	CompareStateToReference()
 }
 
 func eval() {
@@ -70,21 +72,21 @@ func train() {
 
 	preTokenizer := NewByteLevel(true)
 
-	static := NewStatic(0.5)
+	// static := NewStatic(0.5)
+	//
+	// if err := static.LoadDict("data/en.splits.tsv"); err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// morfessor := NewMorfessor(0.5)
+	//
+	// if err := morfessor.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	if err := static.LoadDict("data/en.splits.tsv"); err != nil {
-		log.Fatal(err)
-	}
+	segmenter := NewSequence()
 
-	morfessor := NewMorfessor(0.5)
-
-	if err := morfessor.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
-		log.Fatal(err)
-	}
-
-	segmenter := NewSequence(static, morfessor)
-
-	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 32768)
+	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 6000)
 
 	if err := trainer.InitDict("data/shakespeare.txt"); err != nil {
 		log.Fatal(err)
