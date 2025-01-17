@@ -80,11 +80,13 @@ func train() {
 
 	segmenter := NewSequence(static, morfessor)
 
-	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 5000)
+	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 32768)
 
-	if err := trainer.Train("data/shakespeare.txt"); err != nil {
+	if err := trainer.InitDict("data/shakespeare.txt"); err != nil {
 		log.Fatal(err)
 	}
+
+	trainer.Train()
 
 	if err := model.Save("vocab.json", "merges.txt"); err != nil {
 		log.Fatal(err)
