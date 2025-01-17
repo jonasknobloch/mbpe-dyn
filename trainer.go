@@ -75,20 +75,16 @@ func (t *MBPETrainer) InitDict(names ...string) error {
 	return nil
 }
 
+func (t *MBPETrainer) LoadDict(name string) error {
+	return t.dict.Load(name)
+}
+
 func (t *MBPETrainer) AddToken(left, right string) {
 	t.model.AddToken(left + right)
 	t.model.AddMerge(left, right)
 }
 
-func (t *MBPETrainer) Train(names ...string) error {
-	if err := t.InitDict(names...); err != nil {
-		return err
-	}
-
-	// if err := t.dict.Load("out/en-base/dict.txt"); err != nil {
-	// 	return err
-	// }
-
+func (t *MBPETrainer) Train() {
 	t.model.InitVocab(t.vocabSize)
 
 	t.InitVocab()
@@ -230,8 +226,6 @@ func (t *MBPETrainer) Train(names ...string) error {
 	pbMerges.Finish()
 
 	fmt.Println("\nepsilon", epsilon)
-
-	return nil
 }
 
 func (t *MBPETrainer) InitVocab() {
