@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -32,10 +35,12 @@ func eval() {
 	runner := NewRunner()
 
 	runner.AddTokenizer(*initTokenizer("out/en-base/vocab.json", "out/en-base/merges.txt"), "en-base")
-	runner.AddTokenizer(*initTokenizer("out/en-c050/vocab.json", "out/en-c050/merges.txt"), "en-c050")
-	runner.AddTokenizer(*initTokenizer("out/en-c100/vocab.json", "out/en-c100/merges.txt"), "en-c100")
-	runner.AddTokenizer(*initTokenizer("out/en-c100-m050/vocab.json", "out/en-c100-m050/merges.txt"), "en-c100-m050")
-	runner.AddTokenizer(*initTokenizer("out/en-c100-m100/vocab.json", "out/en-c100-m100/merges.txt"), "en-c100-m100")
+	runner.AddTokenizer(*initTokenizer("out/en-s050/vocab.json", "out/en-s050/merges.txt"), "en-s050")
+	runner.AddTokenizer(*initTokenizer("out/en-s100/vocab.json", "out/en-s100/merges.txt"), "en-s100")
+	runner.AddTokenizer(*initTokenizer("out/en-m050/vocab.json", "out/en-m050/merges.txt"), "en-m050")
+	runner.AddTokenizer(*initTokenizer("out/en-m100/vocab.json", "out/en-m100/merges.txt"), "en-m100")
+	runner.AddTokenizer(*initTokenizer("out/en-s100-m050/vocab.json", "out/en-s100-m050/merges.txt"), "en-s100-m050")
+	runner.AddTokenizer(*initTokenizer("out/en-s100-m100/vocab.json", "out/en-s100-m100/merges.txt"), "en-s100-m100")
 
 	runner.AddEvaluator(func() Evaluator {
 		bprEval := NewBPREvaluator()
@@ -73,7 +78,7 @@ func eval() {
 func tokenize() {
 	model := NewMBPE()
 
-	err := model.Load("vocab.json", "merges.txt")
+	err := model.Load("out/en-base/vocab.json", "out/en-base/merges.txt")
 
 	if err != nil {
 		log.Fatal(err)
@@ -94,37 +99,78 @@ func tokenize() {
 }
 
 func train() {
-	model := NewMBPE()
+	out := "out"
 
-	preTokenizer := NewByteLevel(true)
+	s050 := NewStatic(0.5)
 
-	// static := NewStatic(0.5)
-	//
-	// if err := static.LoadDict("data/en.splits.tsv"); err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// morfessor := NewMorfessor(0.5)
-	//
-	// if err := morfessor.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	segmenter := NewSequence()
-
-	trainer := NewMBPETrainer(preTokenizer, segmenter, model, 6000)
-
-	if err := trainer.InitDict("data/shakespeare.txt"); err != nil {
+	if err := s050.LoadDict("data/webcelex/en.splits.tsv"); err != nil {
 		log.Fatal(err)
 	}
 
-	trainer.Train()
+	s100 := NewStatic(1)
 
-	if err := model.Save("vocab.json", "merges.txt"); err != nil {
+	if err := s100.LoadDict("data/webcelex/en.splits.tsv"); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := trainer.dict.Save("dict.txt"); err != nil {
+	m050 := NewMorfessor(0.5)
+
+	if err := m050.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
 		log.Fatal(err)
+	}
+
+	m100 := NewMorfessor(1)
+
+	if err := m100.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
+		log.Fatal(err)
+	}
+
+	newTrainer := func(segmenter Segmenter) *MBPETrainer {
+		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<15)
+	}
+
+	trainers := []struct {
+		*MBPETrainer
+		string
+	}{
+		{newTrainer(NewSequence()), "en-base"},
+		{newTrainer(s050), "en-s050"},
+		{newTrainer(s100), "en-s100"},
+		{newTrainer(m050), "en-m050"},
+		{newTrainer(m100), "en-m100"},
+		{newTrainer(NewSequence(s100, m050)), "en-s100-m050"},
+		{newTrainer(NewSequence(s100, m100)), "en-s100-m100"},
+	}
+
+	for i, t := range trainers {
+		dict := filepath.Join(out, "dict.txt")
+
+		if err := t.LoadDict(dict); err != nil {
+			if err := t.InitDict("data/culturax/en_part_00000.txt", "data/culturax/en_part_00000.txt"); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := t.dict.Save(dict); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		if i > 0 {
+			fmt.Println()
+		}
+
+		fmt.Printf("%s\n\n", t.string)
+
+		t.Train()
+
+		dir := filepath.Join(out, t.string)
+
+		if err := os.Mkdir(dir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+			log.Fatal(err)
+		}
+
+		if err := t.model.Save(filepath.Join(dir, "vocab.json"), filepath.Join(dir, "merges.txt")); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
