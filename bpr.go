@@ -17,7 +17,6 @@ type BPREvaluator struct {
 	skipSingletonGoldSegmentations bool
 	skipSingletonTestSegmentations bool
 	chooseBestTokenizationLayer    bool
-	maxRank                        int
 	gold                           [][]string
 }
 
@@ -26,7 +25,6 @@ func NewBPREvaluator() *BPREvaluator {
 		skipSingletonGoldSegmentations: true,
 		skipSingletonTestSegmentations: false,
 		chooseBestTokenizationLayer:    false,
-		maxRank:                        -1,
 		gold:                           make([][]string, 0),
 	}
 }
@@ -43,7 +41,7 @@ func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 	})
 }
 
-func (bpr *BPREvaluator) Eval(tokenizer *Tokenizer) ([]float64, error) {
+func (bpr *BPREvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
 	tp := 0
 	fp := 0
 	tn := 0
@@ -66,7 +64,7 @@ func (bpr *BPREvaluator) Eval(tokenizer *Tokenizer) ([]float64, error) {
 				}
 			}()
 
-			layers := model.TokenizeLayered(word, bpr.maxRank)
+			layers := model.TokenizeLayered(word, maxRank)
 
 			if !bpr.chooseBestTokenizationLayer {
 				layers = layers[len(layers)-1:]

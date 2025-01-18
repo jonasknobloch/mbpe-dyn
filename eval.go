@@ -6,7 +6,7 @@ import (
 )
 
 type Evaluator interface {
-	Eval(tokenizer *Tokenizer) ([]float64, error)
+	Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error)
 }
 
 type EvalRunner struct {
@@ -35,53 +35,83 @@ func (r *EvalRunner) AddEvaluator(evaluator Evaluator, name string) {
 	r.evaluatorNames = append(r.evaluatorNames, name)
 }
 
-func (r *EvalRunner) RunAll() string {
-	results := make([][]string, len(r.tokenizers)+1)
-	columns := make([]string, len(r.evaluators)+1)
-
-	widths := make([]int, len(columns))
-
-	for _, name := range r.tokenizerNames {
-		if len(name) > widths[0] {
-			widths[0] = len(name)
-		}
+func (r *EvalRunner) RunAll(vocabSizes ...int) string {
+	if len(vocabSizes) == 0 {
+		vocabSizes = []int{-1}
 	}
 
-	for i, name := range r.evaluatorNames {
-		columns[i+1] = name
-		widths[i+1] = len(name)
+	results := make([][]string, 0, len(r.tokenizers)*len(vocabSizes)+1)
+
+	columns := make([]string, len(r.evaluators)+2)
+	widths := make([]int, len(r.evaluators)+2)
+
+	results = append(results, append([]string{"#", "Vocabulary"}, r.evaluatorNames...))
+
+	for i, name := range results[0] {
+		columns[i] = name
+		widths[i] = len(name)
 	}
 
-	results[0] = append([]string{"#"}, r.evaluatorNames...)
+	for _, vocabSize := range vocabSizes {
+		for i, tokenizer := range r.tokenizers {
+			model, ok := tokenizer.model.(*MBPE)
 
-	for i, tokenizer := range r.tokenizers {
-		row := make([]string, len(columns))
-
-		row[0] = r.tokenizerNames[i]
-
-		for j, evaluator := range r.evaluators {
-			result, err := evaluator.Eval(tokenizer)
-
-			if err != nil {
-				row[j+1] = "x"
-
-				continue
+			if !ok {
+				panic("unexpected model type")
 			}
 
-			s := make([]string, len(result))
+			row := make([]string, len(columns))
 
-			for k, v := range result {
-				s[k] = fmt.Sprintf("%.4f", v)
+			row[0] = r.tokenizerNames[i]
+
+			if vocabSize == -1 {
+				row[1] = fmt.Sprintf("%d", len(model.vocab))
+			} else {
+				row[1] = fmt.Sprintf("%d", vocabSize)
 			}
 
-			row[j+1] = strings.Join(s, ", ")
+			maxRank := -1
 
-			if len(row[j+1]) > widths[j+1] {
-				widths[j+1] = len(row[j+1])
+			if vocabSize > -1 {
+				alphabet := model.Alphabet()
+
+				if vocabSize < len(alphabet) {
+					panic("vocab size smaller than alphabet")
+				}
+
+				if vocabSize > len(model.vocab) {
+					panic("vocab size larger than model vocabulary")
+				}
+
+				maxRank = vocabSize - len(alphabet)
 			}
+
+			for j, evaluator := range r.evaluators {
+				result, err := evaluator.Eval(tokenizer, maxRank)
+
+				if err != nil {
+					row[j+2] = "error"
+
+					continue
+				}
+
+				s := make([]string, len(result))
+
+				for k, v := range result {
+					s[k] = fmt.Sprintf("%.4f", v)
+				}
+
+				row[j+2] = strings.Join(s, ", ")
+			}
+
+			for j, cell := range row {
+				if len(cell) > widths[j] {
+					widths[j] = len(cell)
+				}
+			}
+
+			results = append(results, row)
 		}
-
-		results[i+1] = row
 	}
 
 	return markdownTable(results, widths)
