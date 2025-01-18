@@ -67,7 +67,7 @@ func eval() {
 		return refEval
 	}(), "Overlap")
 
-	fmt.Print(runner.RunAll())
+	fmt.Print(runner.RunAll(1 << 15))
 }
 
 func tokenize() {

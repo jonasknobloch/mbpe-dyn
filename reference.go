@@ -16,100 +16,69 @@ func (r *ReferenceEvaluator) LoadModel(vocab, merges string) error {
 	return r.model.Load(vocab, merges)
 }
 
-func (r *ReferenceEvaluator) Eval(tokenizer *Tokenizer) ([]float64, error) {
-	m, ok := tokenizer.model.(*MBPE)
+func (r *ReferenceEvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
+	var model *MBPE
 
-	if !ok {
+	if m, ok := tokenizer.model.(*MBPE); !ok {
 		return nil, errors.New("unexpected model type")
+	} else {
+		model = m
 	}
 
-	vocab := vocabOverlap(m.atoi, r.model.atoi)
-	merges := mergeOverlap(m.merges, r.model.merges)
+	vocab := r.vocabOverlap(model, maxRank)
+	merges := r.mergeOverlap(model, maxRank)
 
 	return []float64{vocab, merges}, nil
 }
 
-func vocabOverlap(a, b map[string]int) float64 {
-	if len(a) != len(b) {
-		// panic("vocabularies have different sizes")
+func (r *ReferenceEvaluator) vocabOverlap(target *MBPE, maxRank int) float64 {
+	sizeR := len(r.model.vocab)
+	sizeT := len(target.vocab)
+
+	if maxRank > -1 {
+		sizeR = len(r.model.Alphabet()) + maxRank
+		sizeT = len(target.Alphabet()) + maxRank
 	}
 
 	n := 0
 
-	for k := range a {
-		if _, ok := b[k]; ok {
-			n++
+	for i, token := range target.vocab {
+		if i > sizeT-1 {
+			break
 		}
+
+		j, ok := r.model.atoi[token]
+
+		if !ok || j > sizeR-1 {
+			continue
+		}
+
+		n++
 	}
 
-	// fmt.Println("\nmissed tokens")
-	//
-	// for k := range b {
-	// 	if _, ok := a[k]; !ok {
-	// 		fmt.Println(k)
-	// 	}
-	// }
-
-	// fmt.Println("\nextra tokens")
-	//
-	// for k := range a {
-	// 	if _, ok := b[k]; !ok {
-	// 		fmt.Println(k)
-	// 	}
-	// }
-
-	return float64(n) / float64(len(a))
+	return float64(n) / float64(sizeR)
 }
 
-func mergeOverlap(a, b [][2]string) float64 {
-	if len(a) != len(b) {
-		// panic("merge lists have different sizes")
-	}
-
+func (r *ReferenceEvaluator) mergeOverlap(target *MBPE, maxRank int) float64 {
 	n := 0
 
-	for _, ma := range a {
-		for _, mb := range b {
-			if ma == mb {
-				n++
-				break
-			}
+	for _, merge := range target.merges {
+		if maxRank > -1 && target.ranks[merge] > maxRank-1 {
+			continue
 		}
+
+		rank, ok := r.model.ranks[merge]
+
+		if !ok || (maxRank > -1 && rank > maxRank-1) {
+			continue
+		}
+
+		n++
 	}
 
-	// fmt.Println("\nmissed merges")
-	//
-	// for _, mb := range b {
-	// 	found := false
-	//
-	// 	for _, ma := range a {
-	// 		if ma == mb {
-	// 			found = true
-	// 			break
-	// 		}
-	// 	}
-	//
-	// 	if !found {
-	// 		fmt.Println(mb)
-	// 	}
-	// }
+	if maxRank == -1 {
+		return float64(n) / float64(len(r.model.merges))
+	}
 
-	// fmt.Println("\nextra merges")
-	//
-	// for _, ma := range a {
-	// 	found := false
-	//
-	// 	for _, mb := range b {
-	// 		if ma == mb {
-	// 			found = true
-	// 			break
-	// 		}
-	// 	}
-	//
-	// 	if !found {
-	// 		fmt.Println(ma)
-	// 	}
-	// }
-
-	return float64(n) / float64(len(a))
+	return float64(n) / float64(maxRank)
 }

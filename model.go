@@ -45,6 +45,10 @@ func (m *MBPE) Cap() int {
 	return cap(m.vocab)
 }
 
+func (m *MBPE) Alphabet() []string {
+	return m.vocab[:len(m.vocab)-len(m.merges)]
+}
+
 func (m *MBPE) AddToken(token string) {
 	if _, ok := m.atoi[token]; ok {
 		panic("token already exists")

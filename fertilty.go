@@ -1,5 +1,7 @@
 package main
 
+import "errors"
+
 type FertilityEvaluator struct {
 	dict *Dict
 }
@@ -20,12 +22,18 @@ func (f *FertilityEvaluator) LoadDict(name string) error {
 	return f.dict.Load(name)
 }
 
-func (f *FertilityEvaluator) Eval(tokenizer *Tokenizer) ([]float64, error) {
+func (f *FertilityEvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
 	numTokens := 0
 	numChunks := 0
 
+	m, ok := tokenizer.model.(*MBPE)
+
+	if !ok {
+		return nil, errors.New("unexpected model type")
+	}
+
 	for _, chunk := range f.dict.Items() {
-		numTokens += len(tokenizer.model.Tokenize(chunk.src)) * chunk.n
+		numTokens += len(m.tokenize(chunk.src, nil, maxRank)) * chunk.n
 		numChunks += chunk.n
 	}
 
