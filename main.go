@@ -133,7 +133,7 @@ func train() {
 		*MBPETrainer
 		string
 	}{
-		{newTrainer(NewSequence()), "en-base"},
+		{newTrainer(nil), "en-base"},
 		{newTrainer(s050), "en-s050"},
 		{newTrainer(s100), "en-s100"},
 		{newTrainer(m050), "en-m050"},
