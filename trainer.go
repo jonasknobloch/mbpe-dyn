@@ -97,19 +97,21 @@ func (t *MBPETrainer) Train() {
 
 	chunks := t.dict.Items()
 
-	pbSplit := NewProgressBar("Segment chunks", 20, len(chunks), time.Now())
+	if t.segmenter != nil {
+		pbSplit := NewProgressBar("Segment chunks", 20, len(chunks), time.Now())
 
-	for i := range chunks {
-		segments, alpha := SegmentWithoutPrefixWhitespace(chunks[i].src, t.segmenter)
+		for i := range chunks {
+			segments, alpha := SegmentWithoutPrefixWhitespace(chunks[i].src, t.segmenter)
 
-		chunks[i].Split(segments)
-		chunks[i].Alpha(alpha)
+			chunks[i].Split(segments)
+			chunks[i].Alpha(alpha)
 
-		pbSplit.Increment()
-		pbSplit.Print()
+			pbSplit.Increment()
+			pbSplit.Print()
+		}
+
+		pbSplit.Finish()
 	}
-
-	pbSplit.Finish()
 
 	var mergeWeights = make(map[Pair]float64) // pair_counts
 	var pairPositions = make(map[Pair][]int)  // where_to_update
