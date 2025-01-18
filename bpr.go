@@ -41,7 +41,7 @@ func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 	})
 }
 
-func (bpr *BPREvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
+func (bpr *BPREvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
 	tp := 0
 	fp := 0
 	tn := 0

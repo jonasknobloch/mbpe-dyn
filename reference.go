@@ -16,7 +16,7 @@ func (r *ReferenceEvaluator) LoadModel(vocab, merges string) error {
 	return r.model.Load(vocab, merges)
 }
 
-func (r *ReferenceEvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
+func (r *ReferenceEvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
 	var model *MBPE
 
 	if m, ok := tokenizer.model.(*MBPE); !ok {

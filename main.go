@@ -31,11 +31,11 @@ func eval() {
 
 	runner := NewRunner()
 
-	runner.AddTokenizer(initTokenizer("out/en-base/vocab.json", "out/en-base/merges.txt"), "en-base")
-	runner.AddTokenizer(initTokenizer("out/en-c050/vocab.json", "out/en-c050/merges.txt"), "en-c050")
-	runner.AddTokenizer(initTokenizer("out/en-c100/vocab.json", "out/en-c100/merges.txt"), "en-c100")
-	runner.AddTokenizer(initTokenizer("out/en-c100-m050/vocab.json", "out/en-c100-m050/merges.txt"), "en-c100-m050")
-	runner.AddTokenizer(initTokenizer("out/en-c100-m100/vocab.json", "out/en-c100-m100/merges.txt"), "en-c100-m100")
+	runner.AddTokenizer(*initTokenizer("out/en-base/vocab.json", "out/en-base/merges.txt"), "en-base")
+	runner.AddTokenizer(*initTokenizer("out/en-c050/vocab.json", "out/en-c050/merges.txt"), "en-c050")
+	runner.AddTokenizer(*initTokenizer("out/en-c100/vocab.json", "out/en-c100/merges.txt"), "en-c100")
+	runner.AddTokenizer(*initTokenizer("out/en-c100-m050/vocab.json", "out/en-c100-m050/merges.txt"), "en-c100-m050")
+	runner.AddTokenizer(*initTokenizer("out/en-c100-m100/vocab.json", "out/en-c100-m100/merges.txt"), "en-c100-m100")
 
 	runner.AddEvaluator(func() Evaluator {
 		bprEval := NewBPREvaluator()
