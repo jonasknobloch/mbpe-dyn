@@ -29,10 +29,12 @@ func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE,
 }
 
 func (t *MBPETrainer) InitDict(names ...string) error {
-	lines, err := countLines(names...)
+	var lines int
 
-	if err != nil {
+	if l, err := countLines(names...); err != nil {
 		return err
+	} else {
+		lines = l
 	}
 
 	pb := NewProgressBar("Pre-process files", 20, lines, time.Now())
@@ -68,11 +70,11 @@ func (t *MBPETrainer) InitDict(names ...string) error {
 		close(done)
 	}(ctx)
 
-	t.dict.ProcessFiles(names...)
+	err := t.dict.ProcessFiles(names...)
 
 	<-done
 
-	return nil
+	return err
 }
 
 func (t *MBPETrainer) LoadDict(name string) error {
