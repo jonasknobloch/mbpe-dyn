@@ -20,7 +20,7 @@ func (f *FertilityEvaluator) LoadDict(name string) error {
 	return f.dict.Load(name)
 }
 
-func (f *FertilityEvaluator) Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error) {
+func (f *FertilityEvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
 	numTokens := 0
 	numChunks := 0
 

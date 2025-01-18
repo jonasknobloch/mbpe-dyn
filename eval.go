@@ -6,11 +6,11 @@ import (
 )
 
 type Evaluator interface {
-	Eval(tokenizer *Tokenizer, maxRank int) ([]float64, error)
+	Eval(tokenizer Tokenizer, maxRank int) ([]float64, error)
 }
 
 type EvalRunner struct {
-	tokenizers     []*Tokenizer
+	tokenizers     []Tokenizer
 	evaluators     []Evaluator
 	tokenizerNames []string
 	evaluatorNames []string
@@ -18,14 +18,14 @@ type EvalRunner struct {
 
 func NewRunner() *EvalRunner {
 	return &EvalRunner{
-		tokenizers:     make([]*Tokenizer, 0),
+		tokenizers:     make([]Tokenizer, 0),
 		evaluators:     make([]Evaluator, 0),
 		tokenizerNames: make([]string, 0),
 		evaluatorNames: make([]string, 0),
 	}
 }
 
-func (r *EvalRunner) AddTokenizer(tokenizer *Tokenizer, name string) {
+func (r *EvalRunner) AddTokenizer(tokenizer Tokenizer, name string) {
 	r.tokenizers = append(r.tokenizers, tokenizer)
 	r.tokenizerNames = append(r.tokenizerNames, name)
 }
