@@ -13,9 +13,7 @@ func NewFertilityEvaluator() *FertilityEvaluator {
 }
 
 func (f *FertilityEvaluator) InitDict(names ...string) error {
-	f.dict.ProcessFiles(names...)
-
-	return nil
+	return f.dict.ProcessFiles(names...)
 }
 
 func (f *FertilityEvaluator) LoadDict(name string) error {

@@ -32,7 +32,7 @@ func (d *Dict) Lines() int {
 	return d.lines
 }
 
-func (d *Dict) ProcessFiles(names ...string) {
+func (d *Dict) ProcessFiles(names ...string) error {
 	jobs := make(chan string)
 
 	var wg sync.WaitGroup
@@ -77,13 +77,16 @@ func (d *Dict) ProcessFiles(names ...string) {
 		}()
 	}
 
-main:
 	for _, name := range names {
-		file, err := os.Open(name)
+		var file *os.File
 
-		if err != nil {
-			continue
+		if f, err := os.Open(name); err != nil {
+			return err
+		} else {
+			file = f
 		}
+
+		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
 
@@ -115,18 +118,18 @@ main:
 			line := scanner.Text()
 
 			if err := scanner.Err(); err != nil {
-				continue main
+				return err
 			}
 
 			jobs <- line
 		}
-
-		file.Close()
 	}
 
 	close(jobs)
 
 	wg.Wait()
+
+	return nil
 }
 
 func (d *Dict) Save(name string) error {
