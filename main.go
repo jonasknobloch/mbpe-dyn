@@ -45,7 +45,7 @@ func eval() {
 		}
 
 		return bprEval
-	}(), "BPR")
+	}(), "Boundary Precision Recall")
 
 	runner.AddEvaluator(func() Evaluator {
 		fertilityEval := NewFertilityEvaluator()
@@ -65,7 +65,7 @@ func eval() {
 		}
 
 		return refEval
-	}(), "Overlap")
+	}(), "Reference Overlap")
 
 	fmt.Print(runner.RunAll(1 << 15))
 }
