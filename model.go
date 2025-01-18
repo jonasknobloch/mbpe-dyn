@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"strings"
 )
 
 type Model interface {
@@ -222,12 +223,18 @@ func (m *MBPE) Load(vocab, merges string) error {
 
 	ms := make([][2]string, 0) // unknown number of ms
 
+	first := true
+
 	if err := fromFile(merges, func(scanner *bufio.Scanner) error {
 		for scanner.Scan() {
 			line := scanner.Text()
 
-			if line[0] == '#' {
-				continue
+			if first {
+				first = false
+
+				if strings.HasPrefix(line, "#version:") {
+					continue
+				}
 			}
 
 			if err := scanner.Err(); err != nil {
