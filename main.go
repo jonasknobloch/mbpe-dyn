@@ -55,7 +55,7 @@ func eval() {
 	runner.AddEvaluator(func() Evaluator {
 		fertilityEval := NewFertilityEvaluator()
 
-		if err := fertilityEval.InitDict("data/shakespeare.txt"); err != nil {
+		if err := fertilityEval.InitDict("data/culturax/en_part_00002-10k.txt"); err != nil {
 			log.Fatal(err)
 		}
 
