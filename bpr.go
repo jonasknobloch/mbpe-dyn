@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	legacy "mbpe-dyn/bpr"
 	"strings"
 )
 
@@ -42,6 +43,50 @@ func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 }
 
 func (bpr *BPREvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
+	return bpr.evalLegacy(tokenizer, maxRank)
+}
+
+func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64, error) {
+	gold := make([][]string, 0)
+	pred := make([][]string, 0)
+
+	model := tokenizer.model.(*MBPE)
+
+	for _, split := range bpr.gold {
+		word := "Ġ" + split[0]
+
+		tokens := func() []string {
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Println("unknown token in", word)
+				}
+			}()
+
+			layers := model.TokenizeLayered(word, maxRank)
+
+			return model.ToString(layers[len(layers)-1])
+		}()
+
+		if tokens == nil {
+			continue // tokens = []string{word}
+		}
+
+		if tokens[0] == "Ġ" {
+			tokens = tokens[1:]
+		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
+			tokens[0] = tokens[0][len("Ġ"):]
+		}
+
+		gold = append(gold, split[1:])
+		pred = append(pred, tokens)
+	}
+
+	precision, recall, f1 := legacy.Eval(gold, pred)
+
+	return []float64{precision, recall, f1}, nil
+}
+
+func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
 	tp := 0
 	fp := 0
 	tn := 0
