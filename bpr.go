@@ -53,6 +53,10 @@ func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64
 	model := tokenizer.model.(*MBPE)
 
 	for _, split := range bpr.gold {
+		if bpr.skipSingletonGoldSegmentations && len(split) == 2 {
+			continue
+		}
+
 		word := "Ġ" + split[0]
 
 		tokens := func() []string {
@@ -75,6 +79,10 @@ func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64
 			tokens = tokens[1:]
 		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
 			tokens[0] = tokens[0][len("Ġ"):]
+		}
+
+		if bpr.skipSingletonTestSegmentations && len(tokens) == 1 {
+			continue
 		}
 
 		gold = append(gold, split[1:])
