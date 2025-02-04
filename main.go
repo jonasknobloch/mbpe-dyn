@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -96,6 +98,60 @@ func tokenize() {
 	fmt.Println(tokens)
 	fmt.Println(model.ToString(tokens))
 	fmt.Println(tokenizer.decoder.Decode(model.ToString(tokens)))
+}
+
+func tokenizeFile(name string, vocabSize int) {
+	model := NewMBPE()
+
+	if err := model.Load("out/en-base/vocab.json", "out/en-base/merges.txt"); err != nil {
+		log.Fatal(err)
+	}
+
+	gold := make([]string, 0)
+
+	if err := readTsv(name, func(record []string) error {
+		if len(record) == 0 {
+			return errors.New("unexpected number of fields")
+		}
+
+		gold = append(gold, record[0])
+
+		return nil
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	segmentations := make([][]string, len(gold))
+
+	maxRank := -1
+
+	if vocabSize > -1 {
+		maxRank = vocabSize - len(model.Alphabet())
+	}
+
+	for i, compound := range gold {
+		tokens := model.ToString(model.tokenize(compound, nil, maxRank))
+
+		if tokens[0] == "Ġ" {
+			tokens = tokens[1:]
+		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
+			tokens[0] = tokens[0][len("Ġ"):]
+		}
+
+		segmentations[i] = tokens
+	}
+
+	if err := toFile("segmentations.txt", func(writer *bufio.Writer) error {
+		for i, segmentation := range segmentations {
+			if _, err := writer.WriteString(fmt.Sprintf("%s\t%s\n", gold[i], strings.Join(segmentation, " "))); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func train() {
