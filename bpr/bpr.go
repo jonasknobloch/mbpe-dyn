@@ -64,25 +64,23 @@ func Eval(gold, predicted [][]string) (float64, float64, float64) {
 	sumPrecision := 0.0
 	sumRecall := 0.0
 
-	totalRecall := 0
-	totalPrecision := 0
+	total := 0.0
 
 	for i := range gold {
 		a := BoundaryVector(gold[i])
 		b := BoundaryVector(predicted[i])
 
-		p, tp := RecallEvalSingle(a, b)
-		r, tr := RecallEvalSingle(b, a)
+		p, _ := RecallEvalSingle(a, b)
+		r, _ := RecallEvalSingle(b, a)
 
 		sumPrecision += p
 		sumRecall += r
 
-		totalPrecision += tp
-		totalRecall += tr
+		total++
 	}
 
-	precision := sumPrecision / float64(totalPrecision)
-	recall := sumRecall / float64(totalRecall)
+	precision := sumPrecision / total
+	recall := sumRecall / total
 
 	f1 := 2.0 / (1.0/precision + 1.0/recall)
 
