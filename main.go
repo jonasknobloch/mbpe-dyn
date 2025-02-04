@@ -55,6 +55,16 @@ func eval() {
 	}(), "Boundary Precision Recall")
 
 	runner.AddEvaluator(func() Evaluator {
+		mlEval := NewMergeLayerEvaluator()
+
+		if err := mlEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
+			log.Fatal(err)
+		}
+
+		return mlEval
+	}(), "Merge Layer")
+
+	runner.AddEvaluator(func() Evaluator {
 		fertilityEval := NewFertilityEvaluator()
 
 		if err := fertilityEval.InitDict("data/culturax/en_part_00002-10k.txt"); err != nil {
