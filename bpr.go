@@ -282,3 +282,33 @@ func evalSegmentations(segmentations [][]string, gold []string, src string, mode
 
 	return segmentations[idx], r[idx]
 }
+
+func (bpr *BPREvaluator) EvalFile(name string) ([]float64, error) {
+	gold := make([][]string, len(bpr.gold))
+	pred := make([][]string, len(bpr.gold))
+
+	i := 0
+
+	if err := readTsv(name, func(record []string) error {
+		if len(record) != 2 {
+			return errors.New("unexpected number of fields")
+		}
+
+		if record[0] != bpr.gold[i][0] {
+			return errors.New("unexpected compound")
+		}
+
+		gold[i] = bpr.gold[i][1:]
+		pred[i] = strings.Split(record[1], " ")
+
+		i++
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	precision, recall, f1 := legacy.Eval(gold, pred)
+
+	return []float64{precision, recall, f1}, nil
+}
