@@ -18,6 +18,7 @@ type BPREvaluator struct {
 	skipSingletonGoldSegmentations bool
 	skipSingletonTestSegmentations bool
 	chooseBestTokenizationLayer    bool
+	useLegacyEval                  bool
 	gold                           [][]string
 }
 
@@ -26,6 +27,7 @@ func NewBPREvaluator() *BPREvaluator {
 		skipSingletonGoldSegmentations: true,
 		skipSingletonTestSegmentations: false,
 		chooseBestTokenizationLayer:    false,
+		useLegacyEval:                  false,
 		gold:                           make([][]string, 0),
 	}
 }
@@ -43,7 +45,11 @@ func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 }
 
 func (bpr *BPREvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
-	return bpr.evalLegacy(tokenizer, maxRank)
+	if bpr.useLegacyEval {
+		return bpr.evalLegacy(tokenizer, maxRank)
+	}
+
+	return bpr.eval(tokenizer, maxRank)
 }
 
 func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64, error) {
@@ -95,10 +101,10 @@ func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64
 }
 
 func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, error) {
-	tp := 0
-	fp := 0
-	tn := 0
-	fn := 0
+	sumPrecision := 0.0
+	sumRecall := 0.0
+
+	total := 0.0
 
 	model := tokenizer.model.(*MBPE)
 
@@ -107,10 +113,12 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 			continue
 		}
 
-		word := "Ġ" + split[0]
+		word := split[0]
 		gold := split[1:]
 
 		layers := func() [][]string {
+			word := "Ġ" + word
+
 			defer func() {
 				if r := recover(); r != nil {
 					fmt.Println("unknown token in", word)
@@ -148,20 +156,35 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 			continue
 		}
 
-		_, counts := evalSegmentations(layers, gold, word, MaxF1)
+		top, counts := evalSegmentations(layers, gold, word, MaxF1)
 
-		tp += counts[0]
-		fp += counts[1]
-		tn += counts[2]
-		fn += counts[3]
+		tp := counts[0]
+		fp := counts[1]
+		fn := counts[3]
+
+		p := float64(tp) / float64(tp+fp)
+		r := float64(tp) / float64(tp+fn)
+
+		if len(top) == 1 {
+			p = 1 // precision 1 of no bounds in prediction
+		}
+
+		if len(gold) == 1 {
+			r = 1 // recall 1 if no bounds in gold segmentation
+		}
+
+		sumPrecision += p
+		sumRecall += r
+
+		total++
 	}
 
-	precision := float64(tp) / float64(tp+fp)
-	recall := float64(tp) / float64(tp+fn)
-	accuracy := float64(tp+tn) / float64(tp+tn+fp+fn)
+	precision := sumPrecision / total
+	recall := sumRecall / total
+
 	f1 := 2 * precision * recall / (precision + recall)
 
-	return []float64{precision, recall, accuracy, f1}, nil
+	return []float64{precision, recall, f1}, nil
 }
 
 func evalSegmentations(segmentations [][]string, gold []string, src string, mode int) ([]string, [4]int) {
@@ -209,10 +232,6 @@ func evalSegmentations(segmentations [][]string, gold []string, src string, mode
 		for i := range src {
 			if i == 0 {
 				continue
-			}
-
-			if i == len([]rune(src))-1 {
-				break
 			}
 
 			_, inA := a[i]
