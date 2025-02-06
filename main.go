@@ -17,6 +17,32 @@ func main() {
 }
 
 func eval() {
+	tokenizers := make([]string, 0)
+
+	base := "out"
+
+	if err := filepath.WalkDir(base, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(base, path)
+
+		if err != nil {
+			return err
+		}
+
+		depth := strings.Count(rel, string(os.PathSeparator))
+
+		if d.IsDir() && rel != "." && depth == 0 {
+			tokenizers = append(tokenizers, path)
+		}
+
+		return nil
+	}); err != nil {
+		log.Fatal(err)
+	}
+
 	initTokenizer := func(vocab, merges string) *Tokenizer {
 		model := NewMBPE()
 
@@ -36,13 +62,9 @@ func eval() {
 
 	runner := NewRunner()
 
-	runner.AddTokenizer(*initTokenizer("out/en-base/vocab.json", "out/en-base/merges.txt"), "en-base")
-	runner.AddTokenizer(*initTokenizer("out/en-s050/vocab.json", "out/en-s050/merges.txt"), "en-s050")
-	runner.AddTokenizer(*initTokenizer("out/en-s100/vocab.json", "out/en-s100/merges.txt"), "en-s100")
-	runner.AddTokenizer(*initTokenizer("out/en-m050/vocab.json", "out/en-m050/merges.txt"), "en-m050")
-	runner.AddTokenizer(*initTokenizer("out/en-m100/vocab.json", "out/en-m100/merges.txt"), "en-m100")
-	runner.AddTokenizer(*initTokenizer("out/en-s100-m050/vocab.json", "out/en-s100-m050/merges.txt"), "en-s100-m050")
-	runner.AddTokenizer(*initTokenizer("out/en-s100-m100/vocab.json", "out/en-s100-m100/merges.txt"), "en-s100-m100")
+	for _, name := range tokenizers {
+		runner.AddTokenizer(*initTokenizer(filepath.Join(name, "vocab.json"), filepath.Join(name, "merges.txt")), filepath.Base(name))
+	}
 
 	runner.AddEvaluator(func() Evaluator {
 		bprEval := NewBPREvaluator()
@@ -77,7 +99,7 @@ func eval() {
 	runner.AddEvaluator(func() Evaluator {
 		refEval := NewReferenceEvaluator()
 
-		if err := refEval.LoadModel("out/en-base/vocab.json", "out/en-base/merges.txt"); err != nil {
+		if err := refEval.LoadModel(filepath.Join(tokenizers[0], "vocab.json"), filepath.Join(tokenizers[0], "merges.txt")); err != nil {
 			log.Fatal(err)
 		}
 
@@ -229,7 +251,7 @@ func train() {
 
 		t.Train()
 
-		dir := filepath.Join(out, t.string)
+		dir := filepath.Join(out, fmt.Sprintf("%02d-%s", i, t.string))
 
 		if err := os.Mkdir(dir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 			log.Fatal(err)
