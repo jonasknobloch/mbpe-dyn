@@ -46,6 +46,12 @@ func (m *MBPE) Cap() int {
 }
 
 func (m *MBPE) Alphabet() []string {
+	offset := len(m.vocab) - len(m.merges)
+
+	if offset < 0 {
+		panic("unexpected vocabulary size")
+	}
+
 	return m.vocab[:len(m.vocab)-len(m.merges)]
 }
 
