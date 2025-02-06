@@ -13,6 +13,7 @@ import (
 func main() {
 	// tokenize()
 	// eval()
+	// plot()
 	// train()
 }
 

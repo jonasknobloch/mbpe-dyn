@@ -1,5 +1,7 @@
 # mbpe-dyn
 
+![plot](assets/plot.svg)
+
 ## out
 
 | #               | Vocabulary | Boundary Precision Recall | Merge Layer | Fertility | Reference Overlap |
