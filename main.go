@@ -67,7 +67,7 @@ func eval() {
 	runner.AddEvaluator(func() Evaluator {
 		fertilityEval := NewFertilityEvaluator()
 
-		if err := fertilityEval.InitDict("data/culturax/en_part_00002-10k.txt"); err != nil {
+		if err := fertilityEval.InitDict("data/culturax/en_part_00001-10k.txt"); err != nil {
 			log.Fatal(err)
 		}
 
@@ -192,7 +192,7 @@ func train() {
 	}
 
 	newTrainer := func(segmenter Segmenter) *MBPETrainer {
-		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<15)
+		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<16)
 	}
 
 	trainers := []struct {
@@ -212,7 +212,7 @@ func train() {
 		dict := filepath.Join(out, "dict.txt")
 
 		if err := t.LoadDict(dict); err != nil {
-			if err := t.InitDict("data/culturax/en_part_00000.txt", "data/culturax/en_part_00000.txt"); err != nil {
+			if err := t.InitDict("data/culturax/en_part_00000.txt"); err != nil {
 				log.Fatal(err)
 			}
 
