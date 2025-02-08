@@ -2,17 +2,20 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"mbpe-dyn/bpr"
 	"strings"
 )
 
 type MergeLayerEvaluator struct {
-	gold [][]string
+	gold           [][]string
+	addPrefixSpace bool
 }
 
 func NewMergeLayerEvaluator() *MergeLayerEvaluator {
-	return &MergeLayerEvaluator{}
+	return &MergeLayerEvaluator{
+		gold:           make([][]string, 0),
+		addPrefixSpace: true,
+	}
 }
 
 func (ml *MergeLayerEvaluator) LoadSegmentations(name string) error {
@@ -21,7 +24,15 @@ func (ml *MergeLayerEvaluator) LoadSegmentations(name string) error {
 			return errors.New("unexpected number of fields")
 		}
 
-		ml.gold = append(ml.gold, append([]string{record[0]}, strings.Split(record[1], " ")...))
+		compound := record[0]
+		segmentation := strings.Split(record[1], " ")
+
+		if ml.addPrefixSpace {
+			compound = " " + compound
+			segmentation[0] = " " + segmentation[0]
+		}
+
+		ml.gold = append(ml.gold, append([]string{compound}, segmentation...))
 
 		return nil
 	})
@@ -32,53 +43,17 @@ func (ml *MergeLayerEvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64
 }
 
 func (ml *MergeLayerEvaluator) evalMorph(tokenizer Tokenizer, maxRank int) ([]float64, error) {
-	model := tokenizer.model.(*MBPE)
-
 	sum := 0.0
 	total := 0
 
 	for _, split := range ml.gold {
-		word := "Ġ" + split[0]
+		word := split[0]
 		gold := split[1:]
 
-		layers := func() [][]string {
-			defer func() {
-				if r := recover(); r != nil {
-					fmt.Println("unknown token in", word)
-				}
-			}()
+		layers, ok := getTokenizerSegmentationLayered(tokenizer, word, maxRank)
 
-			layers := model.TokenizeLayered(word, maxRank)
-
-			result := make([][]string, len(layers))
-
-			for i, layer := range layers {
-				result[i] = model.ToString(layer)
-			}
-
-			return result
-		}()
-
-		if layers == nil {
-			continue // skip words containing unknown tokens
-		}
-
-		duplicate := -1
-
-		for i, tokens := range layers {
-			if tokens[0] == "Ġ" {
-				layers[i] = tokens[1:]
-			} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
-				layers[i][0] = tokens[0][len("Ġ"):]
-
-				if duplicate == -1 {
-					duplicate = i - 1
-				}
-			}
-		}
-
-		if duplicate != -1 {
-			layers = append(layers[:duplicate], layers[duplicate+1:]...)
+		if !ok {
+			continue
 		}
 
 		gV := bpr.BoundaryVector(gold)

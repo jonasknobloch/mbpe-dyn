@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	legacy "mbpe-dyn/bpr"
 	"strings"
 )
@@ -20,6 +19,7 @@ type BPREvaluator struct {
 	chooseBestTokenizationLayer    bool
 	useLegacyEval                  bool
 	gold                           [][]string
+	addPrefixSpace                 bool
 }
 
 func NewBPREvaluator() *BPREvaluator {
@@ -29,6 +29,7 @@ func NewBPREvaluator() *BPREvaluator {
 		chooseBestTokenizationLayer:    false,
 		useLegacyEval:                  false,
 		gold:                           make([][]string, 0),
+		addPrefixSpace:                 true,
 	}
 }
 
@@ -38,7 +39,15 @@ func (bpr *BPREvaluator) LoadSegmentations(name string) error {
 			return errors.New("unexpected number of fields")
 		}
 
-		bpr.gold = append(bpr.gold, append([]string{record[0]}, strings.Split(record[1], " ")...))
+		compound := record[0]
+		segmentation := strings.Split(record[1], " ")
+
+		if bpr.addPrefixSpace {
+			compound = " " + compound
+			segmentation[0] = " " + segmentation[0]
+		}
+
+		bpr.gold = append(bpr.gold, append([]string{compound}, segmentation...))
 
 		return nil
 	})
@@ -56,43 +65,23 @@ func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64
 	gold := make([][]string, 0)
 	pred := make([][]string, 0)
 
-	model := tokenizer.model.(*MBPE)
-
 	for _, split := range bpr.gold {
 		if bpr.skipSingletonGoldSegmentations && len(split) == 2 {
 			continue
 		}
 
-		word := "Ġ" + split[0]
+		segmentation, ok := getTokenizerSegmentation(tokenizer, split[0], maxRank)
 
-		tokens := func() []string {
-			defer func() {
-				if r := recover(); r != nil {
-					fmt.Println("unknown token in", word)
-				}
-			}()
-
-			layers := model.TokenizeLayered(word, maxRank)
-
-			return model.ToString(layers[len(layers)-1])
-		}()
-
-		if tokens == nil {
-			continue // tokens = []string{word}
+		if !ok {
+			continue
 		}
 
-		if tokens[0] == "Ġ" {
-			tokens = tokens[1:]
-		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
-			tokens[0] = tokens[0][len("Ġ"):]
-		}
-
-		if bpr.skipSingletonTestSegmentations && len(tokens) == 1 {
+		if bpr.skipSingletonTestSegmentations && len(segmentation) == 1 {
 			continue
 		}
 
 		gold = append(gold, split[1:])
-		pred = append(pred, tokens)
+		pred = append(pred, segmentation)
 	}
 
 	precision, recall, f1 := legacy.Eval(gold, pred)
@@ -106,8 +95,6 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 
 	total := 0.0
 
-	model := tokenizer.model.(*MBPE)
-
 	for _, split := range bpr.gold {
 		if bpr.skipSingletonGoldSegmentations && len(split) == 2 {
 			continue
@@ -116,40 +103,24 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 		word := split[0]
 		gold := split[1:]
 
-		layers := func() [][]string {
-			word := "Ġ" + word
+		var layers [][]string
 
-			defer func() {
-				if r := recover(); r != nil {
-					fmt.Println("unknown token in", word)
-				}
-			}()
+		if !bpr.chooseBestTokenizationLayer {
+			segmentation, ok := getTokenizerSegmentation(tokenizer, word, maxRank)
 
-			layers := model.TokenizeLayered(word, maxRank)
-
-			if !bpr.chooseBestTokenizationLayer {
-				layers = layers[len(layers)-1:]
+			if !ok {
+				continue
 			}
 
-			result := make([][]string, len(layers))
+			layers = [][]string{segmentation}
+		} else {
+			segmentation, ok := getTokenizerSegmentationLayered(tokenizer, word, maxRank)
 
-			for i, layer := range layers {
-				result[i] = model.ToString(layer)
+			if !ok {
+				continue
 			}
 
-			return result
-		}()
-
-		if layers == nil {
-			continue // skip words containing unknown tokens
-		}
-
-		for _, tokens := range layers {
-			if tokens[0] == "Ġ" {
-				tokens = tokens[1:]
-			} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
-				tokens[0] = tokens[0][len("Ġ"):]
-			}
+			layers = segmentation
 		}
 
 		if bpr.skipSingletonTestSegmentations && len(layers[len(layers)-1]) == 1 {
@@ -188,15 +159,15 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 }
 
 func evalSegmentations(segmentations [][]string, gold []string, src string, mode int) ([]string, [4]int) {
-	r := make([][4]int, len(segmentations))
+	results := make([][4]int, len(segmentations))
 
-	boundsSet := func(tokens []string) map[int]struct{} {
+	boundsSet := func(segmentation []string) map[int]struct{} {
 		b := make(map[int]struct{})
 
 		i := 0
 
-		for j, g := range tokens {
-			if j == len(tokens)-1 {
+		for j, g := range segmentation {
+			if j == len(segmentation)-1 {
 				break
 			}
 
@@ -211,23 +182,13 @@ func evalSegmentations(segmentations [][]string, gold []string, src string, mode
 
 	b := boundsSet(gold)
 
-	for n, tokens := range segmentations {
+	for n, segmentation := range segmentations {
 		tp := 0
 		fp := 0
 		tn := 0
 		fn := 0
 
-		if tokens[0] == "Ġ" {
-			tokens = tokens[1:]
-		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
-			tokens[0] = tokens[0][len("Ġ"):]
-		}
-
-		if len(tokens) == 0 {
-			panic("no tokens")
-		}
-
-		a := boundsSet(tokens)
+		a := boundsSet(segmentation)
 
 		for i := range src {
 			if i == 0 {
@@ -252,13 +213,13 @@ func evalSegmentations(segmentations [][]string, gold []string, src string, mode
 			}
 		}
 
-		r[n] = [4]int{tp, fp, tn, fn}
+		results[n] = [4]int{tp, fp, tn, fn}
 	}
 
-	best := float64(0)
-	idx := -1
+	m := float64(0)
+	i := -1
 
-	for i, v := range r {
+	for j, v := range results {
 		tp := v[0]
 		fp := v[1]
 		tn := v[2]
@@ -271,35 +232,35 @@ func evalSegmentations(segmentations [][]string, gold []string, src string, mode
 
 		switch mode {
 		case MaxPrecision:
-			if precision >= best {
-				best = precision
-				idx = i
+			if precision >= m {
+				m = precision
+				i = j
 			}
 		case MaxRecall:
-			if recall >= best {
-				best = recall
-				idx = i
+			if recall >= m {
+				m = recall
+				i = j
 			}
 		case MaxAccuracy:
-			if accuracy >= best {
-				best = accuracy
-				idx = i
+			if accuracy >= m {
+				m = accuracy
+				i = j
 			}
 		case MaxF1:
-			if f1 >= best {
-				best = f1
-				idx = i
+			if f1 >= m {
+				m = f1
+				i = j
 			}
 		}
 	}
 
-	if idx == -1 {
-		idx = len(r) - 1
+	if i == -1 {
+		i = len(results) - 1
 	}
 
-	// fmt.Println(src, ":", gold, ":", idx, ":", segmentations)
+	// fmt.Println(src, ":", gold, ":", i, ":", segmentations)
 
-	return segmentations[idx], r[idx]
+	return segmentations[i], results[i]
 }
 
 func (bpr *BPREvaluator) EvalFile(name string) ([]float64, error) {

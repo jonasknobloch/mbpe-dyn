@@ -126,35 +126,44 @@ func tokenize() {
 	tokenizer.SetPreTokenizer(byteLevel)
 	tokenizer.SetDecoder(byteLevel)
 
-	tokens := tokenizer.Tokenize("To infinity and beyond!")
+	ids := tokenizer.Tokenize("To infinity and beyond!")
+	tokens := model.ToString(ids)
 
+	fmt.Println(ids)
 	fmt.Println(tokens)
-	fmt.Println(model.ToString(tokens))
-	fmt.Println(tokenizer.decoder.Decode(model.ToString(tokens)))
+
+	fmt.Println(tokenizer.decoder.Decode(tokens))
 }
 
-func tokenizeFile(name string, vocabSize int) {
+func segmentFile(name string, vocabSize int) {
 	model := NewMBPE()
 
-	if err := model.Load("out/en-base/vocab.json", "out/en-base/merges.txt"); err != nil {
+	tokenizer := NewTokenizer(model)
+
+	byteLevel := NewByteLevel(true)
+
+	tokenizer.SetPreTokenizer(byteLevel)
+	tokenizer.SetDecoder(byteLevel)
+
+	if err := model.Load("out/00-en-base/vocab.json", "out/00-en-base/merges.txt"); err != nil {
 		log.Fatal(err)
 	}
 
-	gold := make([]string, 0)
+	compounds := make([]string, 0)
 
 	if err := readTsv(name, func(record []string) error {
 		if len(record) == 0 {
 			return errors.New("unexpected number of fields")
 		}
 
-		gold = append(gold, record[0])
+		compounds = append(compounds, " "+strings.TrimLeft(record[0], " "))
 
 		return nil
 	}); err != nil {
 		log.Fatal(err)
 	}
 
-	segmentations := make([][]string, len(gold))
+	segmentations := make([][]string, len(compounds))
 
 	maxRank := -1
 
@@ -162,21 +171,19 @@ func tokenizeFile(name string, vocabSize int) {
 		maxRank = vocabSize - len(model.Alphabet())
 	}
 
-	for i, compound := range gold {
-		tokens := model.ToString(model.tokenize(compound, nil, maxRank))
+	for i, compound := range compounds {
+		segmentation, ok := getTokenizerSegmentation(*tokenizer, compound, maxRank)
 
-		if tokens[0] == "Ġ" {
-			tokens = tokens[1:]
-		} else if len(tokens[0]) > 1 && tokens[0][:len("Ġ")] == "Ġ" {
-			tokens[0] = tokens[0][len("Ġ"):]
+		if !ok {
+			continue
 		}
 
-		segmentations[i] = tokens
+		segmentations[i] = segmentation
 	}
 
 	if err := toFile("segmentations.txt", func(writer *bufio.Writer) error {
 		for i, segmentation := range segmentations {
-			if _, err := writer.WriteString(fmt.Sprintf("%s\t%s\n", gold[i], strings.Join(segmentation, " "))); err != nil {
+			if _, err := writer.WriteString(fmt.Sprintf("%s\t%s\n", strings.TrimLeft(compounds[i], " "), strings.TrimLeft(strings.Join(segmentation, " "), " "))); err != nil {
 				return err
 			}
 		}

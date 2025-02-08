@@ -147,14 +147,14 @@ func (t *MBPETrainer) Train() {
 	queue := NewQueue(make([]Merge, 0))
 
 	for pair, positions := range pairPositions {
-		idx := [2]int{
+		ids := [2]int{
 			t.model.atoi[pair[0]],
 			t.model.atoi[pair[1]],
 		}
 
 		heap.Push(queue, Merge{
 			pair:      pair,
-			idx:       idx,
+			ids:       ids,
 			weight:    mergeWeights[pair],
 			positions: positions,
 		})
@@ -206,14 +206,14 @@ func (t *MBPETrainer) Train() {
 		}
 
 		for pair := range pairPositions {
-			idx := [2]int{
+			id := [2]int{
 				t.model.atoi[pair[0]],
 				t.model.atoi[pair[1]],
 			}
 
 			merge := Merge{
 				pair:      pair,
-				idx:       idx,
+				ids:       id,
 				weight:    mergeWeights[pair],
 				positions: pairPositions[pair],
 			}
@@ -269,7 +269,7 @@ func saveMergeFrame(name string, frame []Merge) error {
 
 	if err := toFile(name, func(writer *bufio.Writer) error {
 		for _, merge := range frame {
-			if _, err := writer.WriteString(fmt.Sprintf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.idx[0], merge.pair[1], merge.idx[1], merge.weight)); err != nil {
+			if _, err := writer.WriteString(fmt.Sprintf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.ids[0], merge.pair[1], merge.ids[1], merge.weight)); err != nil {
 				return err
 			}
 		}
@@ -308,6 +308,6 @@ func dumpQueue(queue Queue, top Merge, mergeWeights map[Pair]float64) {
 			break
 		}
 
-		fmt.Printf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.idx[0], merge.pair[1], merge.idx[1], merge.weight)
+		fmt.Printf("%s (%d) %s (%d) %f\n", merge.pair[0], merge.ids[0], merge.pair[1], merge.ids[1], merge.weight)
 	}
 }

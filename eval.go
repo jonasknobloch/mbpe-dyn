@@ -142,3 +142,89 @@ func markdownTable(table [][]string, widths []int) string {
 
 	return sb.String()
 }
+
+func getTokenizerSegmentation(tokenizer Tokenizer, text string, maxRank int) ([]string, bool) {
+	var model *MBPE
+
+	if mbpe, ok := tokenizer.model.(*MBPE); !ok {
+		panic("unexpected model")
+	} else {
+		model = mbpe
+	}
+
+	result := make([]string, 0)
+
+	for _, chunk := range tokenizer.preTokenizer.PreTokenize(text) {
+		var ids []int
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					ids = nil
+				}
+			}()
+
+			ids = model.tokenize(chunk, nil, maxRank)
+		}()
+
+		if ids == nil {
+			return nil, false
+		}
+
+		var segmentation = make([]string, len(ids))
+
+		for i, token := range model.ToString(ids) {
+			segmentation[i] = tokenizer.decoder.Decode([]string{token})
+		}
+
+		result = append(result, segmentation...)
+	}
+
+	return result, true
+}
+
+func getTokenizerSegmentationLayered(tokenizer Tokenizer, text string, maxRank int) ([][]string, bool) {
+	var model *MBPE
+
+	if mbpe, ok := tokenizer.model.(*MBPE); !ok {
+		panic("unexpected model")
+	} else {
+		model = mbpe
+	}
+
+	var chunk string
+
+	if chunks := tokenizer.preTokenizer.PreTokenize(text); len(chunks) > 1 {
+		return nil, false
+	} else {
+		chunk = chunks[0]
+	}
+
+	var layers [][]int
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				layers = nil
+			}
+		}()
+
+		layers = model.TokenizeLayered(chunk, maxRank)
+	}()
+
+	if layers == nil {
+		return nil, false
+	}
+
+	segmentations := make([][]string, len(layers))
+
+	for i, layer := range layers {
+		segmentations[i] = make([]string, len(layer))
+
+		for j, token := range model.ToString(layer) {
+			segmentations[i][j] = tokenizer.decoder.Decode([]string{token})
+		}
+	}
+
+	return segmentations, true
+}

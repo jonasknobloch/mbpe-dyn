@@ -4,7 +4,7 @@ type Pair [2]string
 
 type Merge struct {
 	pair      Pair
-	idx       [2]int
+	ids       [2]int
 	weight    float64
 	positions []int
 }
@@ -14,9 +14,9 @@ func (p *Merge) Less(than Merge) bool {
 		return p.weight < than.weight
 	}
 
-	if p.idx[0] != than.idx[0] {
-		return p.idx[0] > than.idx[0]
+	if p.ids[0] != than.ids[0] {
+		return p.ids[0] > than.ids[0]
 	}
 
-	return p.idx[1] > than.idx[1]
+	return p.ids[1] > than.ids[1]
 }

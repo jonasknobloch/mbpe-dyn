@@ -1,8 +1,29 @@
 package bpr
 
 import (
+	"reflect"
 	"testing"
 )
+
+func TestBoundaryVector(t *testing.T) {
+	segmentation := []string{
+		"adoptio",
+		"tyttäre",
+		"nsä",
+	}
+
+	bounds := BoundaryVector(segmentation)
+
+	expected := []int{
+		0, 0, 0, 0, 0, 0, 1,
+		0, 0, 0, 0, 0, 0, 0, 1,
+		0, 0, 0,
+	}
+
+	if !reflect.DeepEqual(bounds, expected) {
+		t.Errorf("expecetd %v but got %v", expected, bounds)
+	}
+}
 
 func TestEval(t *testing.T) {
 	gold := [][]string{

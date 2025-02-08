@@ -31,7 +31,19 @@ func (f *FertilityEvaluator) Eval(tokenizer Tokenizer, maxRank int) ([]float64, 
 	}
 
 	for _, chunk := range f.dict.Items() {
-		numTokens += len(m.tokenize(chunk.src, nil, maxRank)) * chunk.n
+		var ids []int
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					ids = nil
+				}
+			}()
+
+			ids = m.tokenize(chunk.src, nil, maxRank)
+		}()
+
+		numTokens += len(ids) * chunk.n
 		numChunks += chunk.n
 	}
 

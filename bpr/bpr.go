@@ -44,7 +44,7 @@ func BoundaryVector(segmentation []string) []int {
 	r := make([]int, 0)
 
 	for i, s := range segmentation {
-		for range s[:len(s)-1] {
+		for range len(s) - 1 {
 			r = append(r, 0)
 		}
 
@@ -53,7 +53,7 @@ func BoundaryVector(segmentation []string) []int {
 		}
 	}
 
-	if len(r) != len([]rune(strings.Join(segmentation, "")))-1 {
+	if len(r) != len(strings.Join(segmentation, ""))-1 {
 		panic("length missmatch")
 	}
 

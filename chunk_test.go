@@ -56,7 +56,7 @@ func TestChunk_TrackedMerge(t *testing.T) {
 
 	changes, _ := c.TrackedMerge(Merge{
 		pair:      Pair{"Ġ", "t"},
-		idx:       [2]int{0, 1},
+		ids:       [2]int{0, 1},
 		weight:    0,
 		positions: nil,
 	})

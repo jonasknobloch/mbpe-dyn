@@ -60,12 +60,12 @@ func (m *MBPE) AddToken(token string) {
 		panic("token already exists")
 	}
 
-	idx := len(m.vocab)
+	id := len(m.vocab)
 
 	m.vocab = append(m.vocab, token)
 
-	m.atoi[token] = idx
-	m.itoa[idx] = token
+	m.atoi[token] = id
+	m.itoa[id] = token
 }
 
 func (m *MBPE) AddMerge(left, right string) {
@@ -73,11 +73,11 @@ func (m *MBPE) AddMerge(left, right string) {
 		panic("merge already exists")
 	}
 
-	idx := len(m.merges)
+	id := len(m.merges)
 
 	m.merges = append(m.merges, [2]string{left, right})
 
-	m.ranks[[2]string{left, right}] = idx
+	m.ranks[[2]string{left, right}] = id
 }
 
 func (m *MBPE) TokenizeLayered(phrase string, maxRank int) [][]int {
@@ -85,35 +85,35 @@ func (m *MBPE) TokenizeLayered(phrase string, maxRank int) [][]int {
 
 	m.tokenize(phrase, &merges, maxRank)
 
-	c := NewChunk(phrase, 1, nil, 0)
+	chunk := NewChunk(phrase, 1, nil, 0)
 
-	r := make([][]int, len(merges)+1)
+	layers := make([][]int, len(merges)+1)
 
-	idx := func(tokens []string) []int {
+	toIDs := func(tokens []string) []int {
 		layer := make([]int, len(tokens))
 
-		for j, token := range tokens {
-			idx, ok := m.atoi[token]
+		for i, token := range tokens {
+			id, ok := m.atoi[token]
 
 			if !ok {
 				panic("unknown token")
 			}
 
-			layer[j] = idx
+			layer[i] = id
 		}
 
 		return layer
 	}
 
-	r[0] = idx(c.Tokens())
+	layers[0] = toIDs(chunk.Tokens())
 
 	for i, pos := range merges {
-		c.MergePairIdx(pos)
+		chunk.MergePairIdx(pos)
 
-		r[i+1] = idx(c.Tokens())
+		layers[i+1] = toIDs(chunk.Tokens())
 	}
 
-	return r
+	return layers
 }
 
 func (m *MBPE) Tokenize(phrase string) []int {
@@ -164,32 +164,32 @@ func (m *MBPE) tokenize(phrase string, merges *[]int, maxRank int) []int {
 	r := make([]int, len(c.bounds)-1)
 
 	for i, token := range c.Tokens() {
-		idx, ok := m.atoi[token]
+		id, ok := m.atoi[token]
 
 		if !ok {
 			panic("unknown token")
 		}
 
-		r[i] = idx
+		r[i] = id
 	}
 
 	return r
 }
 
-func (m *MBPE) ToString(tokens []int) []string {
-	r := make([]string, len(tokens))
+func (m *MBPE) ToString(ids []int) []string {
+	result := make([]string, len(ids))
 
-	for i, token := range tokens {
-		s, ok := m.itoa[token]
+	for i, id := range ids {
+		token, ok := m.itoa[id]
 
 		if !ok {
-			panic("unknown token")
+			panic("unknown token identifier")
 		}
 
-		r[i] = s
+		result[i] = token
 	}
 
-	return r
+	return result
 }
 
 func (m *MBPE) Save(vocab, merges string) error {
@@ -221,8 +221,8 @@ func (m *MBPE) Load(vocab, merges string) error {
 
 	itoa := make(map[int]string, len(atoi))
 
-	for token, idx := range atoi {
-		itoa[idx] = token
+	for token, id := range atoi {
+		itoa[id] = token
 	}
 
 	vs := make([]string, len(itoa))

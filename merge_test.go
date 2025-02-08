@@ -7,12 +7,12 @@ import (
 
 func TestMerge_Less(t *testing.T) {
 	a := Merge{
-		idx:    [2]int{0, 1},
+		ids:    [2]int{0, 1},
 		weight: 1,
 	}
 
 	b := Merge{
-		idx:    [2]int{0, 0},
+		ids:    [2]int{0, 0},
 		weight: 1,
 	}
 
