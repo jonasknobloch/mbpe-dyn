@@ -1,6 +1,8 @@
 # mbpe-dyn
 
-![plot](assets/plot.svg)
+![plot](assets/plot-00.svg)
+
+![plot](assets/plot-01.svg)
 
 ## out
 

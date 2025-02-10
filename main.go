@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// tokenize()
-	eval()
+	// eval()
 	// plot()
 	// train()
 }
