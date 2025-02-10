@@ -98,7 +98,7 @@ func (r *EvalRunner) RunAll(vocabSizes ...int) string {
 				s := make([]string, len(result))
 
 				for k, v := range result {
-					s[k] = fmt.Sprintf("%.4f", v)
+					s[k] = fmt.Sprintf("%.2f", v)
 				}
 
 				row[j+2] = strings.Join(s, ", ")
