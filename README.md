@@ -1,8 +1,58 @@
-# mbpe-dyn
+# Morphologically Biased Byte-Pair Encoding
+
+`mbpe-dyn` is a research-focused implementation of byte-pair encoding[^1].
+The training results are compatible with the corresponding implementation
+in [huggingface/tokenizers](https://github.com/huggingface/tokenizers).
+
+`mbpe-dyn` extends the byte-pair encoding training algorithm as follows. Subword segmentations, which are a direct
+result of the trained merge rules, can be aligned to a provided gold segmentation. More specifically, the likelihood of
+merge rules that don't interfere with the targeted segmentation is increased. This increase can be tuned via a
+hyperparameter.
+
+`mbpe-dyn` was initially created to gain some insights into how well byte-pair encoding approximates morphological
+boundaries. Literature suggests that byte-pair encoding produces subword boundaries that align poorly with
+linguistically meaningful reference segmentations[^2].
+
+[^1]: [Neural Machine Translation of Rare Words with Subword Units](https://doi.org/10.48550/arXiv.1508.07909)
+
+[^2]: [Byte Pair Encoding is Suboptimal for Language Model Pretraining](https://arxiv.org/abs/2004.03720)
+
+## Related Work
+
+* [MorphPiece : A Linguistic Tokenizer for Large Language Models](https://arxiv.org/abs/2307.07262)
+* [MorphBPE: A Morpho-Aware Tokenizer Bridging Linguistic Complexity for Efficient LLM Training Across Morphologies](https://arxiv.org/abs/2502.00894)
+* [BPE-knockout: Pruning Pre-existing BPE Tokenisers with Backwards-compatible Morphological Semi-supervision](https://aclanthology.org/2024.naacl-long.324/)
+
+## Limitations
+
+When employing a tokenizer with a close-to-one fertility for large language model training, the intermediate subword
+segmentations during tokenization practically do not matter, since they are not relayed to the language model in any
+way. Therefore, we suspect our extension to be more useful in settings with tokenization fertility above one.
+
+## Segmenters
+
+| Segmenter   | Description                                                                                                                                                                                                                                                                                                                               |
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `static`    | The `static` segmenter is intended to be used with a morphological lexicon. Lexicon data can be loaded from `.tsv` files that match the format of the [Morpho Challenge](http://morpho.aalto.fi/events/morphochallenge/)[^3] datasets.                                                                                                    |
+| `morfessor` | The `morfessor` segmenter allows segmentation via a [Morfessor](https://github.com/aalto-speech/morfessor) baseline model. Trained baseline models need to be converted to a binary format using our Protobuf definition. See the [morfessor](https://github.com/jonasknobloch/mbpe-dyn/tree/main/morfessor)[^4][^5] package for details. |
+
+[^3]: [Morpho Challenge 2005-2010: Evaluations and Results](https://aclanthology.org/W10-2211/)
+
+[^4]: [Unsupervised Discovery of Morphemes](https://doi.org/10.48550/arXiv.cs/0205057)
+
+[^5]: [Morfessor 2.0: Python Implementation and Extensions for Morfessor Baseline](https://urn.fi/URN:ISBN:978-952-60-5501-5)
+
+## Evaluators
+
+| Evaluator                         | Description                                                                                                                                                                                                                                                                                                             |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Fertility**                     | Measures the number of tokens per tokenized word. A fertility of one is ideal, meaning each input word maps to exactly one token. Byte-pair encoding optimizes tokenization fertility by prioritizing frequent subwords.                                                                                                |
+| **Boundary Precision and Recall** | Evaluates word segmentations by matching them against a gold standard, calculating precision and recall. Based on the [Morpho Challenge](http://morpho.aalto.fi/events/morphochallenge/) evaluation scripts. A partial port is available in the [bpr](https://github.com/jonasknobloch/mbpe-dyn/tree/main/bpr) package. |
+| **Merge Layer**                   | Instead of only evaluating the final segmentation, this metric examines intermediate segmentations after each merge. It records the number of previous merges at which a morphological boundary was crossed.                                                                                                            |
+
+## Evaluation Results
 
 ![plot](assets/plot.svg)
-
-## out
 
 | #          | Vocabulary | Boundary Precision Recall | Merge Layer | Fertility | Reference Overlap |
 |------------|------------|---------------------------|-------------|-----------|-------------------|
