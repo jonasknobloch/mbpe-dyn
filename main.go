@@ -197,45 +197,47 @@ func segmentFile(name string, vocabSize int) {
 func train() {
 	out := "out"
 
-	s050 := NewStatic(0.5)
+	morfessor := func(alpha float64) Segmenter {
+		m := NewMorfessor(alpha)
 
-	if err := s050.LoadDict("data/webcelex/en.splits.tsv"); err != nil {
-		log.Fatal(err)
+		if err := m.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
+			log.Fatal(err)
+		}
+
+		return m
 	}
 
-	s100 := NewStatic(1)
-
-	if err := s100.LoadDict("data/webcelex/en.splits.tsv"); err != nil {
-		log.Fatal(err)
-	}
-
-	m050 := NewMorfessor(0.5)
-
-	if err := m050.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
-		log.Fatal(err)
-	}
-
-	m100 := NewMorfessor(1)
-
-	if err := m100.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
-		log.Fatal(err)
-	}
+	m000 := morfessor(0.0)
+	m010 := morfessor(0.1)
+	m020 := morfessor(0.2)
+	m030 := morfessor(0.3)
+	m040 := morfessor(0.4)
+	m050 := morfessor(0.5)
+	m060 := morfessor(0.6)
+	m070 := morfessor(0.7)
+	m080 := morfessor(0.8)
+	m090 := morfessor(0.9)
+	m100 := morfessor(1.0)
 
 	newTrainer := func(segmenter Segmenter) *MBPETrainer {
-		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<16)
+		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<17)
 	}
 
 	trainers := []struct {
 		*MBPETrainer
 		string
 	}{
-		{newTrainer(nil), "en-base"},
-		{newTrainer(s050), "en-s050"},
-		{newTrainer(s100), "en-s100"},
+		{newTrainer(m000), "en-m000"},
+		{newTrainer(m010), "en-m010"},
+		{newTrainer(m020), "en-m020"},
+		{newTrainer(m030), "en-m030"},
+		{newTrainer(m040), "en-m040"},
 		{newTrainer(m050), "en-m050"},
+		{newTrainer(m060), "en-m060"},
+		{newTrainer(m070), "en-m070"},
+		{newTrainer(m080), "en-m080"},
+		{newTrainer(m090), "en-m090"},
 		{newTrainer(m100), "en-m100"},
-		{newTrainer(NewSequence(s100, m050)), "en-s100-m050"},
-		{newTrainer(NewSequence(s100, m100)), "en-s100-m100"},
 	}
 
 	for i, t := range trainers {
