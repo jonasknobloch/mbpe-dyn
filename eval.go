@@ -35,7 +35,7 @@ func (r *EvalRunner) AddEvaluator(evaluator Evaluator, name string) {
 	r.evaluatorNames = append(r.evaluatorNames, name)
 }
 
-func (r *EvalRunner) RunAll(vocabSizes ...int) string {
+func (r *EvalRunner) RunAll(vocabSizes ...int) (string, [][][]float64) {
 	if len(vocabSizes) == 0 {
 		vocabSizes = []int{-1}
 	}
@@ -46,6 +46,8 @@ func (r *EvalRunner) RunAll(vocabSizes ...int) string {
 	widths := make([]int, len(r.evaluators)+2)
 
 	results = append(results, append([]string{"#", "Vocabulary"}, r.evaluatorNames...))
+
+	raw := make([][][]float64, len(r.evaluators))
 
 	for i, name := range results[0] {
 		columns[i] = name
@@ -98,10 +100,11 @@ func (r *EvalRunner) RunAll(vocabSizes ...int) string {
 				s := make([]string, len(result))
 
 				for k, v := range result {
-					s[k] = fmt.Sprintf("%.4f", v)
+					s[k] = fmt.Sprintf("%.2f", v)
 				}
 
 				row[j+2] = strings.Join(s, ", ")
+				raw[j] = append(raw[j], result)
 			}
 
 			for j, cell := range row {
@@ -114,7 +117,7 @@ func (r *EvalRunner) RunAll(vocabSizes ...int) string {
 		}
 	}
 
-	return markdownTable(results, widths)
+	return markdownTable(results, widths), raw
 }
 
 func markdownTable(table [][]string, widths []int) string {
@@ -227,4 +230,14 @@ func getTokenizerSegmentationLayered(tokenizer Tokenizer, text string, maxRank i
 	}
 
 	return segmentations, true
+}
+
+func selectColumn(series [][]float64, j int) []float64 {
+	result := make([]float64, len(series))
+
+	for i, row := range series {
+		result[i] = row[j]
+	}
+
+	return result
 }

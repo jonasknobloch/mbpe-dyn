@@ -1,94 +1,114 @@
 package main
 
 import (
-	"gonum.org/v1/gonum/stat"
+	"gonum.org/v1/gonum/interp"
 	pl "gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
 	"image/color"
 	"log"
+	"sort"
 )
 
-func plot() {
-	xs1 := []float64{
-		1.1214,
-		1.1223,
-		1.1718,
-		1.1241,
-		1.2159,
-		1.1639,
-		1.2036,
-	}
+type plotData struct {
+	xs     []float64
+	ys     []float64
+	line   bool
+	spline bool
+	label  string
+	color  color.RGBA
+}
 
-	ys1 := []float64{
-		0.4877,
-		0.4992,
-		0.5199,
-		0.5115,
-		0.5311,
-		0.4936,
-		0.5147,
+func newPlotData(xs, ys []float64, line, spline bool, label string, color color.RGBA) plotData {
+	return plotData{
+		xs:     xs,
+		ys:     ys,
+		line:   line,
+		spline: spline,
+		label:  label,
+		color:  color,
 	}
+}
 
-	xs2 := []float64{
-		1.1235,
-		1.1847,
-		1.1972,
-		1.4130,
-	}
+func (p plotData) Len() int {
+	return len(p.xs)
+}
 
-	ys2 := []float64{
-		0.4850,
-		0.5267,
-		0.5601,
-		0.5632,
-	}
+func (p plotData) Less(i, j int) bool {
+	return p.xs[i] < p.xs[j]
+}
 
+func (p plotData) Swap(i, j int) {
+	p.xs[i], p.xs[j] = p.xs[j], p.xs[i]
+	p.ys[i], p.ys[j] = p.ys[j], p.ys[i]
+}
+
+func (p plotData) XY(i int) (x, y float64) {
+	return p.xs[i], p.ys[i]
+}
+
+func plot(data []plotData, rangeX, rangeY [2]float64, labelX, labelY string) {
 	p := pl.New()
 
-	// p.Title.Text = ""
+	p.X.Min = rangeX[0]
+	p.X.Max = rangeX[1]
+	p.Y.Min = rangeY[0]
+	p.Y.Max = rangeY[1]
 
-	p.X.Label.Text = "fertility"
-	p.Y.Label.Text = "F1"
+	p.X.Label.Text = labelX
+	p.Y.Label.Text = labelY
 
-	p.X.Min = 1.0
-	p.X.Max = 2.0
-	p.Y.Min = 0.0
-	p.Y.Max = 1.0
+	drawSpline := func(s plotData) {
+		sort.Sort(s)
 
-	draw := func(xs, ys []float64, color color.RGBA, label string) {
-		intercept, slope := stat.LinearRegression(xs, ys, nil, false)
+		predictor := interp.FittablePredictor(&interp.AkimaSpline{})
 
-		scatterData := make(plotter.XYs, len(xs))
-
-		for i := range xs {
-			scatterData[i].X = xs[i]
-			scatterData[i].Y = ys[i]
-		}
-
-		scatter, err := plotter.NewScatter(scatterData)
-
-		scatter.Color = color
-
-		if err != nil {
+		if err := predictor.Fit(s.xs, s.ys); err != nil {
 			log.Fatal(err)
 		}
 
-		scatter.Radius = 2
-
-		lineFunc := plotter.NewFunction(func(x float64) float64 {
-			return intercept + slope*x
+		line := plotter.NewFunction(func(x float64) float64 {
+			return predictor.Predict(x)
 		})
 
-		lineFunc.Color = color
+		line.Color = s.color
+		line.Dashes = []vg.Length{vg.Points(2), vg.Points(2)}
 
-		p.Add(scatter, lineFunc)
+		p.Add(line)
 
-		p.Legend.Add(label, scatter)
+		p.Legend.Add(s.label, line)
 	}
 
-	draw(xs1, ys1, color.RGBA{R: 255, G: 0, B: 0, A: 255}, "out")
-	draw(xs2, ys2, color.RGBA{R: 0, G: 0, B: 255, A: 255}, "out-mbpe")
+	drawScatter := func(s plotData) {
+		if scatter, err := plotter.NewScatter(s); err != nil {
+			log.Fatal(err)
+		} else {
+			scatter.Color = s.color
+			scatter.Radius = 2
+
+			p.Add(scatter)
+
+			p.Legend.Add(s.label, scatter)
+		}
+
+		if line, err := plotter.NewLine(s); err != nil {
+			log.Fatal(err)
+		} else {
+			line.Color = s.color
+
+			p.Add(line)
+		}
+	}
+
+	for _, s := range data {
+		if s.spline {
+			drawSpline(s)
+
+			continue
+		}
+
+		drawScatter(s)
+	}
 
 	if err := p.Save(8*vg.Inch, 5*vg.Inch, "assets/plot.svg"); err != nil {
 		log.Fatal(err)

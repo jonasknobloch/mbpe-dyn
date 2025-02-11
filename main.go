@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"golang.org/x/image/colornames"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 func main() {
 	// tokenize()
 	// eval()
-	// plot()
 	// train()
 }
 
@@ -67,7 +67,7 @@ func eval() {
 		runner.AddTokenizer(*initTokenizer(filepath.Join(name, "vocab.json"), filepath.Join(name, "merges.txt")), filepath.Base(name))
 	}
 
-	runner.AddEvaluator(func() Evaluator {
+	bpr := func() Evaluator {
 		bprEval := NewBPREvaluator()
 
 		if err := bprEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
@@ -75,9 +75,9 @@ func eval() {
 		}
 
 		return bprEval
-	}(), "Boundary Precision Recall")
+	}()
 
-	runner.AddEvaluator(func() Evaluator {
+	ml := func() Evaluator {
 		mlEval := NewMergeLayerEvaluator()
 
 		if err := mlEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
@@ -85,9 +85,9 @@ func eval() {
 		}
 
 		return mlEval
-	}(), "Merge Layer")
+	}()
 
-	runner.AddEvaluator(func() Evaluator {
+	fert := func() Evaluator {
 		fertilityEval := NewFertilityEvaluator()
 
 		if err := fertilityEval.InitDict("data/culturax/en_part_00001-10k.txt"); err != nil {
@@ -95,9 +95,9 @@ func eval() {
 		}
 
 		return fertilityEval
-	}(), "Fertility")
+	}()
 
-	runner.AddEvaluator(func() Evaluator {
+	ref := func() Evaluator {
 		refEval := NewReferenceEvaluator()
 
 		if err := refEval.LoadModel(filepath.Join(tokenizers[0], "vocab.json"), filepath.Join(tokenizers[0], "merges.txt")); err != nil {
@@ -105,9 +105,41 @@ func eval() {
 		}
 
 		return refEval
-	}(), "Reference Overlap")
+	}()
 
-	fmt.Print(runner.RunAll(1 << 15))
+	runner.AddEvaluator(bpr, "Boundary Precision Recall")
+	runner.AddEvaluator(ml, "Merge Layer")
+	runner.AddEvaluator(fert, "Fertility")
+	runner.AddEvaluator(ref, "Reference Overlap")
+
+	baseline := NewRunner()
+
+	baseline.AddTokenizer(*initTokenizer(filepath.Join(tokenizers[0], "vocab.json"), filepath.Join(tokenizers[0], "merges.txt")), filepath.Base(tokenizers[0]))
+
+	baseline.AddEvaluator(ml, "Merge Layer")
+	baseline.AddEvaluator(fert, "Fertility")
+
+	md00, raw00 := runner.RunAll(1 << 16)
+	md01, raw01 := runner.RunAll(1 << 15)
+	md02, raw02 := runner.RunAll(1 << 14)
+
+	_, rawBase := baseline.RunAll(100000, 90000, 80000, 70000, 60000, 50000, 40000, 30000, 20000, 10000, 5000)
+
+	s00 := newPlotData(selectColumn(raw00[2], 0), selectColumn(raw00[1], 0), true, false, "2^16", colornames.Red)
+	s01 := newPlotData(selectColumn(raw01[2], 0), selectColumn(raw01[1], 0), true, false, "2^15", colornames.Green)
+	s02 := newPlotData(selectColumn(raw02[2], 0), selectColumn(raw02[1], 0), true, false, "2^14", colornames.Blue)
+
+	sBase := newPlotData(selectColumn(rawBase[1], 0), selectColumn(rawBase[0], 0), false, true, "baseline", colornames.Black)
+
+	data := []plotData{s00, s01, s02, sBase}
+
+	plot(data, [2]float64{1.05, 1.32}, [2]float64{0.76, 0.86}, "Fertility", "Merge Layer")
+
+	fmt.Printf(md00)
+	fmt.Println()
+	fmt.Printf(md01)
+	fmt.Println()
+	fmt.Printf(md02)
 }
 
 func tokenize() {
