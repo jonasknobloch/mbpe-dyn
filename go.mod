@@ -1,8 +1,6 @@
 module mbpe-dyn
 
-go 1.22.0
-
-toolchain go1.23.4
+go 1.24.0
 
 require (
 	github.com/dlclark/regexp2 v1.11.4
