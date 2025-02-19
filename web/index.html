@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Tokenizer</title>
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
+            go.run(result.instance);
+        });
+
+        async function tokenizeText() {
+            const input = document.getElementById("textInput").value;
+            const modelChoice = document.getElementById("modelSelect").value; // Get selected model
+
+            if (typeof tokenizeWeb !== "undefined") {
+                const result = tokenizeWeb(input, modelChoice);
+                const tokens = result.tokens;
+                const mergeHistory = result.mergeHistory;
+
+                // Display final tokens
+                const tokenList = document.getElementById("tokenList");
+                tokenList.innerHTML = "";
+                tokens.forEach(token => {
+                    const li = document.createElement("li");
+                    li.textContent = token;
+                    tokenList.appendChild(li);
+                });
+
+                // Display merge process
+                const mergeList = document.getElementById("mergeHistory");
+                mergeList.innerHTML = "";
+
+                mergeHistory.forEach((step, index) => {
+                    const div = document.createElement("div");
+                    div.innerHTML = `<strong>Step ${index + 1}:</strong> [${step.join(", ")}]<br><hr>`;
+                    mergeList.appendChild(div);
+                });
+            }
+        }
+    </script>
+</head>
+<body>
+<h1>Tokenizer</h1>
+
+<label for="modelSelect">Select Tokenizer:</label>
+<select id="modelSelect">
+    <option value="m000">m000</option>
+    <option value="m050">m050</option>
+    <option value="m100" selected>m100</option>
+</select>
+
+<input type="text" id="textInput" placeholder="Enter text here" value="airsickness">
+<button onclick="tokenizeText()">Tokenize</button>
+
+<h2>Final Tokens:</h2>
+<ul id="tokenList"></ul>
+
+<h2>Merge Process:</h2>
+<div id="mergeHistory"></div>
+</body>
+</html>

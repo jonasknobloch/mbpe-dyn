@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
 	"errors"
 	"fmt"
 	"golang.org/x/image/colornames"
@@ -9,12 +10,103 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	// "syscall/js"
 )
 
+//go:embed en-m000.gob
+var m000 []byte
+
+//go:embed en-m050.gob
+var m050 []byte
+
+//go:embed en-m100.gob
+var m100 []byte
+
+// tokenizeWeb takes a string as input and returns a slice of tokens
+func tokenizeWeb(input string, modelChoice string) [][]string {
+	var model *MBPE
+
+	var modelData []byte
+
+	if modelChoice == "m100" {
+		modelData = m100
+	} else if modelChoice == "m050" {
+		modelData = m050
+	} else {
+		modelData = m000
+	}
+
+	if m, err := DeserializeModel(modelData); err != nil {
+		fmt.Println("Error:", err)
+		return nil
+	} else {
+		model = m
+	}
+
+	tokenizer := NewTokenizer(model)
+	byteLevel := NewByteLevel(true)
+	tokenizer.SetPreTokenizer(byteLevel)
+	tokenizer.SetDecoder(byteLevel)
+
+	baz, ok := getTokenizerSegmentationLayered(*tokenizer, input, -1)
+
+	if !ok {
+		boo, ok := getTokenizerSegmentation(*tokenizer, input, -1)
+
+		if ok {
+			baz = [][]string{boo}
+		} else {
+			return [][]string{{"unsupported input"}}
+		}
+	}
+
+	return baz
+}
+
+// wrapTokenizeWeb is a JavaScript-accessible function
+// func wrapTokenizeWeb() js.Func {
+// 	return js.FuncOf(func(this js.Value, args []js.Value) any {
+// 		if len(args) < 2 {
+// 			return js.ValueOf(map[string]any{"tokens": []any{}, "mergeHistory": []any{}})
+// 		}
+//
+// 		input := args[0].String()
+// 		modelChoice := args[1].String() // Get the selected model
+//
+// 		result := tokenizeWeb(input, modelChoice)
+//
+// 		// Convert Go slices to JS arrays
+// 		jsTokens := make([]any, len(result[len(result)-1]))
+// 		for i, token := range result[len(result)-1] {
+// 			jsTokens[i] = token
+// 		}
+//
+// 		jsMergeHistory := make([]any, len(result)-1)
+// 		for i := 1; i < len(result); i++ {
+// 			jsMergeStep := make([]any, len(result[i]))
+// 			for j, step := range result[i] {
+// 				jsMergeStep[j] = step
+// 			}
+// 			jsMergeHistory[i-1] = jsMergeStep
+// 		}
+//
+// 		return js.ValueOf(map[string]any{
+// 			"tokens":       jsTokens,
+// 			"mergeHistory": jsMergeHistory,
+// 		})
+// 	})
+// }
+
 func main() {
-	// tokenize()
+	tokenize()
 	// eval()
 	// train()
+	// server()
+
+	// js.Global().Set("tokenizeWeb", wrapTokenizeWeb())
+
+	// Keep the Go runtime alive
+	// select {}
 }
 
 func eval() {
@@ -145,11 +237,36 @@ func eval() {
 func tokenize() {
 	model := NewMBPE()
 
-	err := model.Load("out/en-base/vocab.json", "out/en-base/merges.txt")
+	// err := model.Load("out-m100/00-en-m000/vocab.json", "out-m100/00-en-m000/merges.txt")
+	// err := model.Load("out-m100/01-en-m010/vocab.json", "out-m100/01-en-m010/merges.txt")
+	// err := model.Load("out-m100/02-en-m020/vocab.json", "out-m100/02-en-m020/merges.txt")
+	// err := model.Load("out-m100/03-en-m030/vocab.json", "out-m100/03-en-m030/merges.txt")
+	// err := model.Load("out-m100/04-en-m040/vocab.json", "out-m100/04-en-m040/merges.txt")
+	// err := model.Load("out-m100/05-en-m050/vocab.json", "out-m100/05-en-m050/merges.txt")
+	// err := model.Load("out-m100/06-en-m060/vocab.json", "out-m100/06-en-m060/merges.txt")
+	// err := model.Load("out-m100/07-en-m070/vocab.json", "out-m100/07-en-m070/merges.txt")
+	// err := model.Load("out-m100/08-en-m080/vocab.json", "out-m100/08-en-m080/merges.txt")
+	// err := model.Load("out-m100/09-en-m090/vocab.json", "out-m100/09-en-m090/merges.txt")
+	// err := model.Load("out-m100/10-en-m100/vocab.json", "out-m100/10-en-m100/merges.txt")
+
+	err := model.Load("out-m100/05-en-m050/vocab.json", "out-m100/05-en-m050/merges.txt")
+	// err := model.Load("out-m100/10-en-m100/vocab.json", "out-m100/10-en-m100/merges.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	//
+	// if err := SerializeModel(model, "en-m100.gob"); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// var model *MBPE
+	//
+	// if m, err := DeserializeModel(m000); err != nil {
+	// 	log.Fatal(err)
+	// } else {
+	// 	model = m
+	// }
 
 	tokenizer := NewTokenizer(model)
 
@@ -158,7 +275,7 @@ func tokenize() {
 	tokenizer.SetPreTokenizer(byteLevel)
 	tokenizer.SetDecoder(byteLevel)
 
-	ids := tokenizer.Tokenize("To infinity and beyond!")
+	ids := tokenizer.Tokenize(" airsickness")
 	tokens := model.ToString(ids)
 
 	fmt.Println(ids)
