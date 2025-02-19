@@ -10,103 +10,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	// "syscall/js"
+	"syscall/js"
 )
 
-//go:embed en-m000.gob
-var m000 []byte
-
-//go:embed en-m050.gob
-var m050 []byte
-
-//go:embed en-m100.gob
-var m100 []byte
-
-// tokenizeWeb takes a string as input and returns a slice of tokens
-func tokenizeWeb(input string, modelChoice string) [][]string {
-	var model *MBPE
-
-	var modelData []byte
-
-	if modelChoice == "m100" {
-		modelData = m100
-	} else if modelChoice == "m050" {
-		modelData = m050
-	} else {
-		modelData = m000
-	}
-
-	if m, err := DeserializeModel(modelData); err != nil {
-		fmt.Println("Error:", err)
-		return nil
-	} else {
-		model = m
-	}
-
-	tokenizer := NewTokenizer(model)
-	byteLevel := NewByteLevel(true)
-	tokenizer.SetPreTokenizer(byteLevel)
-	tokenizer.SetDecoder(byteLevel)
-
-	baz, ok := getTokenizerSegmentationLayered(*tokenizer, input, -1)
-
-	if !ok {
-		boo, ok := getTokenizerSegmentation(*tokenizer, input, -1)
-
-		if ok {
-			baz = [][]string{boo}
-		} else {
-			return [][]string{{"unsupported input"}}
-		}
-	}
-
-	return baz
-}
-
-// wrapTokenizeWeb is a JavaScript-accessible function
-// func wrapTokenizeWeb() js.Func {
-// 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-// 		if len(args) < 2 {
-// 			return js.ValueOf(map[string]any{"tokens": []any{}, "mergeHistory": []any{}})
-// 		}
-//
-// 		input := args[0].String()
-// 		modelChoice := args[1].String() // Get the selected model
-//
-// 		result := tokenizeWeb(input, modelChoice)
-//
-// 		// Convert Go slices to JS arrays
-// 		jsTokens := make([]any, len(result[len(result)-1]))
-// 		for i, token := range result[len(result)-1] {
-// 			jsTokens[i] = token
-// 		}
-//
-// 		jsMergeHistory := make([]any, len(result)-1)
-// 		for i := 1; i < len(result); i++ {
-// 			jsMergeStep := make([]any, len(result[i]))
-// 			for j, step := range result[i] {
-// 				jsMergeStep[j] = step
-// 			}
-// 			jsMergeHistory[i-1] = jsMergeStep
-// 		}
-//
-// 		return js.ValueOf(map[string]any{
-// 			"tokens":       jsTokens,
-// 			"mergeHistory": jsMergeHistory,
-// 		})
-// 	})
-// }
-
 func main() {
-	tokenize()
+	// tokenize()
 	// eval()
 	// train()
 	// server()
 
-	// js.Global().Set("tokenizeWeb", wrapTokenizeWeb())
+	js.Global().Set("tokenizeWeb", wrapTokenizeWeb())
 
 	// Keep the Go runtime alive
-	// select {}
+	select {}
 }
 
 func eval() {
