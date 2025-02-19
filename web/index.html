@@ -136,9 +136,12 @@
             background: #0056b3;
         }
 
+        #modelSelect {
+            width: 80px;
+        }
+
         #vocabSize {
-            width: 120px;
-            text-align: center;
+            width: 110px;
         }
 
         /* Word Tabs */
@@ -210,14 +213,6 @@
 <h1>mbpe-dyn</h1>
 
 <div class="input-group">
-    <input type="text" id="textInput" placeholder="Enter text here" value="foo bar">
-    <select id="vocabSize">
-        <option value="8192">2¹³ (8K)</option>
-        <option value="16384">2¹⁴ (16K)</option>
-        <option value="32768">2¹⁵ (32K)</option>
-        <option value="65536">2¹⁶ (64K)</option>
-        <option value="131072" selected>2¹⁷ (128K)</option>
-    </select>
     <select id="modelSelect">
         <option value="m000">m000</option>
         <option value="m010">m010</option>
@@ -231,6 +226,13 @@
         <option value="m090">m090</option>
         <option value="m100" selected>m100</option>
     </select>
+    <select id="vocabSize">
+        <option value="16384">2¹⁴ (16K)</option>
+        <option value="32768">2¹⁵ (32K)</option>
+        <option value="65536">2¹⁶ (64K)</option>
+        <option value="131072" selected>2¹⁷ (128K)</option>
+    </select>
+    <input type="text" id="textInput" placeholder="Enter text here" value="airsickness">
     <button onclick="tokenizeText()">Tokenize</button>
 </div>
 
