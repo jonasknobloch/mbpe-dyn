@@ -51,18 +51,19 @@ var m100 []byte
 
 func wrapTokenizeWeb() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) < 2 {
+		if len(args) < 3 {
 			log.Fatal("not enough arguments")
 		}
 
 		input := args[0].String()
 		modelChoice := args[1].String()
+		vocabSize := args[2].Int()
 
-		return WTokenize(input, modelChoice)
+		return WTokenize(input, modelChoice, vocabSize)
 	})
 }
 
-func WTokenize(input string, modelChoice string) js.Value {
+func WTokenize(input string, modelChoice string, vocabSize int) js.Value {
 	modelMapping := map[string][]byte{
 		"m000": m000,
 		"m010": m010,
@@ -83,7 +84,7 @@ func WTokenize(input string, modelChoice string) js.Value {
 		log.Fatal("invalid model choice")
 	}
 
-	result, err := WTokenizeWithSerialized(input, serialized)
+	result, err := WTokenizeWithSerialized(input, serialized, vocabSize)
 
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +99,7 @@ func WTokenize(input string, modelChoice string) js.Value {
 	return js.ValueOf(string(jsonData))
 }
 
-func WTokenizeWithSerialized(input string, serialized []byte) ([]WChunk, error) {
+func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]WChunk, error) {
 	var model *MBPE
 
 	if m, err := DeserializeModel(serialized); err != nil {
@@ -118,8 +119,18 @@ func WTokenizeWithSerialized(input string, serialized []byte) ([]WChunk, error) 
 
 	result := make([]WChunk, len(chunks))
 
+	maxRank := -1
+
+	if vocabSize > -1 {
+		alphabet := model.Alphabet()
+
+		if !(vocabSize < len(alphabet)) && !(vocabSize > len(model.vocab)) {
+			maxRank = vocabSize - len(alphabet)
+		}
+	}
+
 	for i, chunk := range chunks {
-		result[i] = WTokenizeChunk(model, chunk, -1)
+		result[i] = WTokenizeChunk(model, chunk, maxRank)
 	}
 
 	return result, nil
