@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Tokenizer</title>
+    <title>mbpe-dyn</title>
     <script src="wasm_exec.js"></script>
     <script>
         const go = new Go();
@@ -12,22 +12,23 @@
         });
 
         async function tokenizeText() {
-            const input = document.getElementById("textInput").value;
-            const modelChoice = document.getElementById("modelSelect").value; // Get selected model
+            const input = document.getElementById("textInput").value.trim();
+            const modelChoice = document.getElementById("modelSelect").value;
+
+            if (!input) {
+                alert("Please enter text to tokenize.");
+                return;
+            }
 
             if (typeof tokenizeWeb !== "undefined") {
                 const resultJSON = tokenizeWeb(input, modelChoice);
 
                 try {
-                    const result = JSON.parse(resultJSON); // Ensure it's a valid JSON object
-
-                    console.log(result);
-
+                    const result = JSON.parse(resultJSON);
                     displayResults(result);
                 } catch (e) {
                     console.error("Error parsing result:", e);
-                    document.getElementById("tokenList").textContent = "Error parsing tokens.";
-                    document.getElementById("mergeHistory").textContent = "";
+                    document.getElementById("mergeHistory").innerHTML = `<p class="error">Error parsing tokens.</p>`;
                 }
             }
         }
@@ -43,20 +44,19 @@
                 const finalSegmentation = segmentation.Segmentations[segmentation.Segmentations.length - 1];
                 const fullWord = finalSegmentation.map(t => t.Token).join("");
 
-                // Create tab for the word
+                // Create tab for each word
                 const tabButton = document.createElement("button");
                 tabButton.textContent = fullWord;
                 tabButton.classList.add("word-tab");
                 tabButton.dataset.wordIndex = wordIndex;
                 tabButton.onclick = () => showMergeHistory(wordIndex);
-
                 tabsContainer.appendChild(tabButton);
 
                 // Create merge history container
                 const wordContainer = document.createElement("div");
                 wordContainer.id = `word-${wordIndex}`;
                 wordContainer.classList.add("merge-history");
-                if (wordIndex !== 0) wordContainer.style.display = "none"; // Hide all but first
+                if (wordIndex !== 0) wordContainer.style.display = "none";
 
                 segmentation.Segmentations.forEach((step, stepIndex) => {
                     const stepDiv = document.createElement("div");
@@ -67,52 +67,90 @@
                 mergeHistory.appendChild(wordContainer);
             });
 
-            // Show first word's history by default
-            showMergeHistory(0);
+            showMergeHistory(0); // Show first word by default
         }
 
         function showMergeHistory(wordIndex) {
-            document.querySelectorAll(".merge-history").forEach(div => {
-                div.style.display = "none";
-            });
+            document.querySelectorAll(".merge-history").forEach(div => div.style.display = "none");
             document.getElementById(`word-${wordIndex}`).style.display = "block";
 
-            // Highlight the selected tab
-            document.querySelectorAll(".word-tab").forEach(btn => {
-                btn.classList.remove("active");
-            });
+            document.querySelectorAll(".word-tab").forEach(btn => btn.classList.remove("active"));
             document.querySelector(`.word-tab[data-word-index="${wordIndex}"]`).classList.add("active");
         }
 
         function formatTokens(tokens) {
-            return tokens.map(t => `<span class="token">${t.Token} (${t.ID})</span>`).join(", ");
+            return tokens.map(t => `<span class="token">${t.Token} <small>(${t.ID})</small></span>`).join(", ");
         }
     </script>
     <style>
-        .token {
-            display: inline-block;
-            background: #e1ecf4;
-            padding: 2px 5px;
-            margin: 2px;
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #007bff;
+        }
+
+        /* Input and Select */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 5px;
-            font-family: monospace;
+            font-size: 16px;
         }
-        h3 {
-            margin-top: 10px;
+
+        input {
+            width: 300px;
         }
+
+        select {
+            width: 150px;
+            background: white;
+            cursor: pointer;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            border: none;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        /* Word Tabs */
         .word-tabs {
             display: flex;
+            justify-content: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .word-tab {
-            padding: 5px 10px;
-            cursor: pointer;
+            padding: 8px 15px;
             background: #e1ecf4;
             border: none;
-            border-radius: 5px;
+            border-radius: 20px;
+            cursor: pointer;
             font-weight: bold;
+            transition: 0.3s;
         }
 
         .word-tab.active {
@@ -120,34 +158,56 @@
             color: white;
         }
 
+        /* Merge History */
         .merge-history {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: left;
             display: none;
+        }
+
+        /* Token Display */
+        .token {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 3px;
+        }
+
+        /* Error Message */
+        .error {
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-<h1>Tokenizer</h1>
 
-<!-- New input field for user text -->
-<label for="textInput">Enter Text:</label>
-<input type="text" id="textInput" placeholder="Enter text here" value="foo bar">
+<h1>mbpe-dyn</h1>
 
-<label for="modelSelect">Select Tokenizer:</label>
-<select id="modelSelect">
-    <option value="m000">m000</option>
-    <option value="m010">m010</option>
-    <option value="m020">m020</option>
-    <option value="m030">m030</option>
-    <option value="m040">m040</option>
-    <option value="m050">m050</option>
-    <option value="m060">m060</option>
-    <option value="m070">m070</option>
-    <option value="m080">m080</option>
-    <option value="m090">m090</option>
-    <option value="m100" selected>m100</option>
-</select>
-
-<button onclick="tokenizeText()">Tokenize</button>
+<div class="input-group">
+    <input type="text" id="textInput" placeholder="Enter text here" value="foo bar">
+    <select id="modelSelect">
+        <option value="m000">m000</option>
+        <option value="m010">m010</option>
+        <option value="m020">m020</option>
+        <option value="m030">m030</option>
+        <option value="m040">m040</option>
+        <option value="m050">m050</option>
+        <option value="m060">m060</option>
+        <option value="m070">m070</option>
+        <option value="m080">m080</option>
+        <option value="m090">m090</option>
+        <option value="m100" selected>m100</option>
+    </select>
+    <button onclick="tokenizeText()">Tokenize</button>
+</div>
 
 <div id="wordTabs" class="word-tabs"></div>
 <div id="mergeHistory"></div>
