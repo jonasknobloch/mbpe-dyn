@@ -3,7 +3,9 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"log"
+	"strings"
 	"syscall/js"
 )
 
@@ -99,7 +101,7 @@ func WTokenize(input string, modelChoice string, vocabSize int) js.Value {
 	return js.ValueOf(string(jsonData))
 }
 
-func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]WChunk, error) {
+func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]string, error) {
 	var model *MBPE
 
 	if m, err := DeserializeModel(serialized); err != nil {
@@ -117,7 +119,7 @@ func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]
 
 	chunks := tokenizer.preTokenizer.PreTokenize(input)
 
-	result := make([]WChunk, len(chunks))
+	result := make([]string, len(chunks))
 
 	maxRank := -1
 
@@ -130,7 +132,7 @@ func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]
 	}
 
 	for i, chunk := range chunks {
-		result[i] = WTokenizeChunk(model, chunk, maxRank)
+		result[i] = WTokenizeToMermaid(model, chunk, maxRank)
 	}
 
 	return result, nil
@@ -157,4 +159,80 @@ func WTokenizeChunk(model *MBPE, chunk string, maxRank int) WChunk {
 	return WChunk{
 		Segmentations: segmentations,
 	}
+}
+
+func WTokenizeToMermaid(model *MBPE, chunk string, maxRank int) string {
+	layers := model.TokenizeLayered(chunk, maxRank)
+
+	diff := func(a, b []int) []int {
+		seen := make(map[int]struct{})
+
+		for _, v := range b {
+			seen[v] = struct{}{}
+		}
+
+		var diff []int
+
+		for _, v := range a {
+			if _, ok := seen[v]; !ok {
+				diff = append(diff, v)
+			}
+		}
+
+		return diff
+	}
+
+	seen := make(map[int][2]int)
+
+	nodes := make([][2]int, 0)
+	edges := make([][2][2]int, 0)
+
+	for i, layer := range layers {
+		for j, id := range layer {
+			if _, ok := seen[id]; ok {
+				continue
+			}
+
+			node := [2]int{i, j}
+
+			seen[id] = node
+			nodes = append(nodes, node)
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		added := diff(layer, layers[i-1])
+		removed := diff(layers[i-1], layer)
+
+		if len(added) != 1 {
+			panic("expected 1 but got ??")
+		}
+
+		if len(removed) != 2 {
+			panic(fmt.Sprintf("expected 2 but got %v", removed))
+		}
+
+		edges = append(edges, [2][2]int{seen[removed[1]], seen[added[0]]})
+		edges = append(edges, [2][2]int{seen[removed[0]], seen[added[0]]})
+	}
+
+	var sb strings.Builder
+
+	sb.WriteString("graph TD\n")
+
+	for i := len(nodes) - 1; i >= 0; i-- {
+		node := nodes[i]
+
+		sb.WriteString(fmt.Sprintf("%d%d[%s]\n", node[0], node[1], model.ToString([]int{layers[node[0]][node[1]]})[0]))
+	}
+
+	for i := len(edges) - 1; i >= 0; i-- {
+		edge := edges[i]
+
+		sb.WriteString(fmt.Sprintf("%d%d-%s->%d%d\n", edge[1][0], edge[1][1], strings.Repeat("-", edge[1][0]-edge[0][0]), edge[0][0], edge[0][1]))
+	}
+
+	return sb.String()
 }

@@ -27,7 +27,14 @@
 
                 try {
                     const result = JSON.parse(resultJSON);
-                    displayResults(result);
+                    // displayResults(result);
+                    console.log(result);
+
+                    if (Array.isArray(result) && result.length > 0) {
+                        document.getElementById("code").innerText = result[0];
+                    } else {
+                        document.getElementById("code").innerText = "No tokens found.";
+                    }
                 } catch (e) {
                     console.error("Error parsing result:", e);
                     document.getElementById("mergeHistory").innerHTML = `<p class="error">Error parsing tokens.</p>`;
@@ -238,6 +245,7 @@
 
 <div id="wordTabs" class="word-tabs"></div>
 <div id="mergeHistory"></div>
+<code id="code"></code>
 
 </body>
 </html>
