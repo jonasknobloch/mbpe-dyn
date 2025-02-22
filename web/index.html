@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mbpe-dyn</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="wasm_exec.js"></script>
     <script>
         const go = new Go();
+
         WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
             go.run(result.instance);
         });
@@ -32,6 +34,7 @@
 
                     if (Array.isArray(result) && result.length > 0) {
                         document.getElementById("code").innerText = result[0];
+                        renderMermaid();
                     } else {
                         document.getElementById("code").innerText = "No tokens found.";
                     }
@@ -89,6 +92,16 @@
 
         function formatTokens(tokens) {
             return tokens.map(t => `<span class="token">${t.Token} <small>(${t.ID})</small></span>`).join(", ");
+        }
+
+        mermaid.initialize({ startOnLoad: false });
+
+        function renderMermaid() {
+            const diagramCode = document.getElementById("code").innerText.trim();
+            if (diagramCode) {
+                document.getElementById("mermaidContainer").innerHTML = `<div class="mermaid">${diagramCode}</div>`;
+                mermaid.init(undefined, document.querySelectorAll(".mermaid"));
+            }
         }
     </script>
     <style>
@@ -245,7 +258,7 @@
 
 <div id="wordTabs" class="word-tabs"></div>
 <div id="mergeHistory"></div>
-<code id="code"></code>
-
+<code id="code" style="display: none;"></code>
+<div id="mermaidContainer"></div>
 </body>
 </html>

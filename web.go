@@ -164,74 +164,55 @@ func WTokenizeChunk(model *MBPE, chunk string, maxRank int) WChunk {
 func WTokenizeToMermaid(model *MBPE, chunk string, maxRank int) string {
 	layers := model.TokenizeLayered(chunk, maxRank)
 
-	diff := func(a, b []int) []int {
-		seen := make(map[int]struct{})
-
-		for _, v := range b {
-			seen[v] = struct{}{}
-		}
-
-		var diff []int
-
-		for _, v := range a {
-			if _, ok := seen[v]; !ok {
-				diff = append(diff, v)
-			}
-		}
-
-		return diff
-	}
-
-	seen := make(map[int][2]int)
-
 	nodes := make([][2]int, 0)
 	edges := make([][2][2]int, 0)
 
+	positions := make([][][2]int, len(layers))
+
 	for i, layer := range layers {
-		for j, id := range layer {
-			if _, ok := seen[id]; ok {
-				continue
-			}
-
-			node := [2]int{i, j}
-
-			seen[id] = node
-			nodes = append(nodes, node)
-		}
+		positions[i] = make([][2]int, 0)
 
 		if i == 0 {
+			for j := range layer {
+				positions[i] = append(positions[i], [2]int{i, j})
+				nodes = append(nodes, [2]int{i, j})
+			}
+
 			continue
 		}
 
-		added := diff(layer, layers[i-1])
-		removed := diff(layers[i-1], layer)
+		for j, token := range layer {
+			if token != layers[i-1][j] {
+				break
+			}
 
-		if len(added) != 1 {
-			panic("expected 1 but got ??")
+			positions[i] = append(positions[i], positions[i-1][j])
 		}
 
-		if len(removed) != 2 {
-			panic(fmt.Sprintf("expected 2 but got %v", removed))
-		}
+		k := len(positions[i])
 
-		edges = append(edges, [2][2]int{seen[removed[1]], seen[added[0]]})
-		edges = append(edges, [2][2]int{seen[removed[0]], seen[added[0]]})
+		positions[i] = append(positions[i], [2]int{i, k})
+
+		nodes = append(nodes, [2]int{i, k})
+
+		edges = append(edges, [2][2]int{positions[i-1][k], positions[i][k]})
+		edges = append(edges, [2][2]int{positions[i-1][k+1], positions[i][k]})
+
+		if len(positions[i]) < len(positions[i-1])-1 {
+			positions[i] = append(positions[i], positions[i-1][k+2:]...)
+		}
 	}
 
 	var sb strings.Builder
 
 	sb.WriteString("graph TD\n")
 
-	for i := len(nodes) - 1; i >= 0; i-- {
-		node := nodes[i]
-
+	for _, node := range nodes {
 		sb.WriteString(fmt.Sprintf("%d%d[%s]\n", node[0], node[1], model.ToString([]int{layers[node[0]][node[1]]})[0]))
 	}
 
-	for i := len(edges) - 1; i >= 0; i-- {
-		edge := edges[i]
-
-		sb.WriteString(fmt.Sprintf("%d%d-%s->%d%d\n", edge[1][0], edge[1][1], strings.Repeat("-", edge[1][0]-edge[0][0]), edge[0][0], edge[0][1]))
+	for _, edge := range edges {
+		sb.WriteString(fmt.Sprintf("%d%d-%s>%d%d\n", edge[1][0], edge[1][1], strings.Repeat("-", edge[1][0]-edge[0][0]), edge[0][0], edge[0][1]))
 	}
 
 	return sb.String()
