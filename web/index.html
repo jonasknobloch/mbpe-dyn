@@ -77,22 +77,19 @@
             ));
 
             const selectedResult = results[index];
+            const diagramCode = selectedResult.Mermaid.trim();
 
-            // Update Mermaid code
-            document.getElementById("code").innerText = selectedResult.Mermaid;
-            renderMermaid();
+            if (diagramCode) {
+                mermaid.render("mermaidDiagram", diagramCode).then(({ svg }) => {
+                    document.getElementById("mermaidContainer").innerHTML = svg;
+                }).catch(error => {
+                    console.error("Mermaid rendering error:", error);
+                });
+            }
 
             // Update active tab
             document.querySelectorAll(".word-tab").forEach(tab => tab.classList.remove("active"));
             document.querySelector(`.word-tab[data-index="${index}"]`).classList.add("active");
-        }
-
-        function renderMermaid() {
-            const diagramCode = document.getElementById("code").innerText.trim();
-            if (diagramCode) {
-                document.getElementById("mermaidContainer").innerHTML = `<div class="mermaid">${diagramCode}</div>`;
-                mermaid.init(undefined, document.querySelectorAll(".mermaid"));
-            }
         }
     </script>
     <style>
@@ -223,7 +220,6 @@
 </div>
 <div id="loadingMessage">Initializing tokenizers...</div>
 <div id="wordTabs" class="word-tabs"></div>
-<code id="code" style="display: none;"></code>
 <div id="mermaidContainer"></div>
 </body>
 </html>
