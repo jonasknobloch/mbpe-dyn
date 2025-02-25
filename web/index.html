@@ -13,6 +13,14 @@
             go.run(result.instance);
         });
 
+        document.addEventListener("DOMContentLoaded", function () {
+            const tokenizeButton = document.querySelector("button[onclick='tokenizeText()']");
+
+            window.onload = function () {
+                tokenizeButton.disabled = false;
+            };
+        });
+
         async function tokenizeText() {
             const input = document.getElementById("textInput").value.trim();
             const modelChoice = document.getElementById("modelSelect").value;
@@ -139,6 +147,12 @@
             background: #0056b3;
         }
 
+        button:disabled {
+            background: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
         #modelSelect {
             width: 80px;
         }
@@ -198,7 +212,7 @@
         <option value="131072" selected>2¹⁷ (128K)</option>
     </select>
     <input type="text" id="textInput" placeholder="Enter text here" value="airsickness">
-    <button onclick="tokenizeText()">Tokenize</button>
+    <button onclick="tokenizeText()" disabled>Tokenize</button>
 </div>
 <div id="wordTabs" class="word-tabs"></div>
 <code id="code" style="display: none;"></code>
