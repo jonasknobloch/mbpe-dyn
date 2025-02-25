@@ -9,16 +9,16 @@
     <script>
         const go = new Go();
 
-        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
-            go.run(result.instance);
-        });
-
         document.addEventListener("DOMContentLoaded", function () {
             const tokenizeButton = document.querySelector("button[onclick='tokenizeText()']");
+            const loadingMessage = document.getElementById("loadingMessage");
 
-            window.onload = function () {
+            WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
+                go.run(result.instance);
+
                 tokenizeButton.disabled = false;
-            };
+                loadingMessage.style.display = "none";
+            });
         });
 
         async function tokenizeText() {
@@ -161,6 +161,13 @@
             width: 110px;
         }
 
+        #loadingMessage {
+            text-align: center;
+            font-weight: bold;
+            color: #555;
+            margin-top: 10px;
+        }
+
         /* Word Tabs */
         .word-tabs {
             display: flex;
@@ -214,6 +221,7 @@
     <input type="text" id="textInput" placeholder="Enter text here" value="airsickness">
     <button onclick="tokenizeText()" disabled>Tokenize</button>
 </div>
+<div id="loadingMessage">Initializing tokenizers...</div>
 <div id="wordTabs" class="word-tabs"></div>
 <code id="code" style="display: none;"></code>
 <div id="mermaidContainer"></div>
