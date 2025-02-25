@@ -15,7 +15,6 @@
 
         async function tokenizeText() {
             const input = document.getElementById("textInput").value.trim();
-
             const modelChoice = document.getElementById("modelSelect").value;
             const vocabSize = parseInt(document.getElementById("vocabSize").value, 10) || -1;
 
@@ -29,72 +28,56 @@
 
                 try {
                     const result = JSON.parse(resultJSON);
-                    // displayResults(result);
                     console.log(result);
 
                     if (Array.isArray(result) && result.length > 0) {
-                        document.getElementById("code").innerText = result[0];
-                        renderMermaid();
+                        displayTabs(result);
+                        showResult(0); // Show first tab by default
                     } else {
                         document.getElementById("code").innerText = "No tokens found.";
+                        document.getElementById("mermaidContainer").innerHTML = "";
                     }
                 } catch (e) {
                     console.error("Error parsing result:", e);
-                    document.getElementById("mergeHistory").innerHTML = `<p class="error">Error parsing tokens.</p>`;
                 }
             }
         }
 
-        function displayResults(segmentations) {
-            const mergeHistory = document.getElementById("mergeHistory");
+        function displayTabs(results) {
             const tabsContainer = document.getElementById("wordTabs");
-
-            mergeHistory.innerHTML = "";
             tabsContainer.innerHTML = "";
 
-            segmentations.forEach((segmentation, wordIndex) => {
-                const finalSegmentation = segmentation.Segmentations[segmentation.Segmentations.length - 1];
-                const fullWord = finalSegmentation.map(t => t.Token).join("");
+            results.forEach((entry, index) => {
+                const finalSegmentation = entry.Segmentations[entry.Segmentations.length - 1];
+                const label = finalSegmentation.map(t => t.Token).join("");
 
-                // Create tab for each word
                 const tabButton = document.createElement("button");
-                tabButton.textContent = fullWord;
+                tabButton.textContent = label;
                 tabButton.classList.add("word-tab");
-                tabButton.dataset.wordIndex = wordIndex;
-                tabButton.onclick = () => showMergeHistory(wordIndex);
+                tabButton.dataset.index = index;
+                tabButton.onclick = () => showResult(index);
+
                 tabsContainer.appendChild(tabButton);
-
-                // Create merge history container
-                const wordContainer = document.createElement("div");
-                wordContainer.id = `word-${wordIndex}`;
-                wordContainer.classList.add("merge-history");
-                if (wordIndex !== 0) wordContainer.style.display = "none";
-
-                segmentation.Segmentations.forEach((step, stepIndex) => {
-                    const stepDiv = document.createElement("div");
-                    stepDiv.innerHTML = `<span class="step-label">Step ${stepIndex + 1}:</span> ${formatTokens(step)}`;
-                    wordContainer.appendChild(stepDiv);
-                });
-
-                mergeHistory.appendChild(wordContainer);
             });
-
-            showMergeHistory(0); // Show first word by default
         }
 
-        function showMergeHistory(wordIndex) {
-            document.querySelectorAll(".merge-history").forEach(div => div.style.display = "none");
-            document.getElementById(`word-${wordIndex}`).style.display = "block";
+        function showResult(index) {
+            const results = JSON.parse(tokenizeWeb(
+                document.getElementById("textInput").value.trim(),
+                document.getElementById("modelSelect").value,
+                parseInt(document.getElementById("vocabSize").value, 10) || -1
+            ));
 
-            document.querySelectorAll(".word-tab").forEach(btn => btn.classList.remove("active"));
-            document.querySelector(`.word-tab[data-word-index="${wordIndex}"]`).classList.add("active");
+            const selectedResult = results[index];
+
+            // Update Mermaid code
+            document.getElementById("code").innerText = selectedResult.Mermaid;
+            renderMermaid();
+
+            // Update active tab
+            document.querySelectorAll(".word-tab").forEach(tab => tab.classList.remove("active"));
+            document.querySelector(`.word-tab[data-index="${index}"]`).classList.add("active");
         }
-
-        function formatTokens(tokens) {
-            return tokens.map(t => `<span class="token">${t.Token} <small>(${t.ID})</small></span>`).join(", ");
-        }
-
-        mermaid.initialize({ startOnLoad: false });
 
         function renderMermaid() {
             const diagramCode = document.getElementById("code").innerText.trim();
@@ -255,9 +238,7 @@
     <input type="text" id="textInput" placeholder="Enter text here" value="airsickness">
     <button onclick="tokenizeText()">Tokenize</button>
 </div>
-
 <div id="wordTabs" class="word-tabs"></div>
-<div id="mergeHistory"></div>
 <code id="code" style="display: none;"></code>
 <div id="mermaidContainer"></div>
 </body>

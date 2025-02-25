@@ -14,8 +14,10 @@ type WToken struct {
 	ID    int
 }
 
-type WChunk struct {
+type WResult struct {
+	Raw           string
 	Segmentations [][]WToken
+	Mermaid       string
 }
 
 //go:embed en-m000.gob
@@ -101,7 +103,7 @@ func WTokenize(input string, modelChoice string, vocabSize int) js.Value {
 	return js.ValueOf(string(jsonData))
 }
 
-func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]string, error) {
+func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]WResult, error) {
 	var model *MBPE
 
 	if m, err := DeserializeModel(serialized); err != nil {
@@ -119,7 +121,7 @@ func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]
 
 	chunks := tokenizer.preTokenizer.PreTokenize(input)
 
-	result := make([]string, len(chunks))
+	result := make([]WResult, len(chunks))
 
 	maxRank := -1
 
@@ -132,15 +134,19 @@ func WTokenizeWithSerialized(input string, serialized []byte, vocabSize int) ([]
 	}
 
 	for i, chunk := range chunks {
-		result[i] = WTokenizeToMermaid(model, chunk, maxRank)
+		layers := model.TokenizeLayered(chunk, maxRank)
+
+		result[i] = WResult{
+			Raw:           chunk,
+			Segmentations: WLayersToSegmentations(layers, model),
+			Mermaid:       WLayersToMermaid(layers, model),
+		}
 	}
 
 	return result, nil
 }
 
-func WTokenizeChunk(model *MBPE, chunk string, maxRank int) WChunk {
-	layers := model.TokenizeLayered(chunk, maxRank)
-
+func WLayersToSegmentations(layers [][]int, model *MBPE) [][]WToken {
 	segmentations := make([][]WToken, len(layers))
 
 	for i, layer := range layers {
@@ -156,14 +162,10 @@ func WTokenizeChunk(model *MBPE, chunk string, maxRank int) WChunk {
 		}
 	}
 
-	return WChunk{
-		Segmentations: segmentations,
-	}
+	return segmentations
 }
 
-func WTokenizeToMermaid(model *MBPE, chunk string, maxRank int) string {
-	layers := model.TokenizeLayered(chunk, maxRank)
-
+func WLayersToMermaid(layers [][]int, model *MBPE) string {
 	nodes := make([][2]int, 0)
 	edges := make([][2][2]int, 0)
 
