@@ -203,16 +203,30 @@ func WTokenizeToMermaid(model *MBPE, chunk string, maxRank int) string {
 		}
 	}
 
+	root := [2]int{len(positions), 0}
+
+	nodes = append(nodes, root)
+
+	for _, foo := range positions[len(positions)-1] {
+		edges = append(edges, [2][2]int{foo, root})
+	}
+
 	var sb strings.Builder
 
 	sb.WriteString("graph TD\n")
 
 	for _, node := range nodes {
-		sb.WriteString(fmt.Sprintf("%d%d[%s]\n", node[0], node[1], model.ToString([]int{layers[node[0]][node[1]]})[0]))
+		label := "ROOT"
+
+		if node[0] < len(layers) {
+			label = model.ToString([]int{layers[node[0]][node[1]]})[0]
+		}
+
+		sb.WriteString(fmt.Sprintf("%d+%d[%s]\n", node[0], node[1], label))
 	}
 
 	for _, edge := range edges {
-		sb.WriteString(fmt.Sprintf("%d%d-%s>%d%d\n", edge[1][0], edge[1][1], strings.Repeat("-", edge[1][0]-edge[0][0]), edge[0][0], edge[0][1]))
+		sb.WriteString(fmt.Sprintf("%d+%d-%s>%d+%d\n", edge[1][0], edge[1][1], strings.Repeat("-", edge[1][0]-edge[0][0]), edge[0][0], edge[0][1]))
 	}
 
 	return sb.String()
