@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
 	"errors"
 	"fmt"
 	"golang.org/x/image/colornames"
 	"log"
+	mbpe "mbpe-dyn"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,12 +17,13 @@ func main() {
 	// tokenize()
 	// eval()
 	// train()
+	// server()
 }
 
 func eval() {
 	tokenizers := make([]string, 0)
 
-	base := "out"
+	base := "out-m100"
 
 	if err := filepath.WalkDir(base, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -44,16 +47,16 @@ func eval() {
 		log.Fatal(err)
 	}
 
-	initTokenizer := func(vocab, merges string) *Tokenizer {
-		model := NewMBPE()
+	initTokenizer := func(vocab, merges string) *mbpe.Tokenizer {
+		model := mbpe.NewMBPE()
 
 		if err := model.Load(vocab, merges); err != nil {
 			log.Fatal(err)
 		}
 
-		tokenizer := NewTokenizer(model)
+		tokenizer := mbpe.NewTokenizer(model)
 
-		byteLevel := NewByteLevel(true)
+		byteLevel := mbpe.NewByteLevel(true)
 
 		tokenizer.SetPreTokenizer(byteLevel)
 		tokenizer.SetDecoder(byteLevel)
@@ -61,14 +64,14 @@ func eval() {
 		return tokenizer
 	}
 
-	runner := NewRunner()
+	runner := mbpe.NewRunner()
 
 	for _, name := range tokenizers {
 		runner.AddTokenizer(*initTokenizer(filepath.Join(name, "vocab.json"), filepath.Join(name, "merges.txt")), filepath.Base(name))
 	}
 
-	bpr := func() Evaluator {
-		bprEval := NewBPREvaluator()
+	bpr := func() mbpe.Evaluator {
+		bprEval := mbpe.NewBPREvaluator()
 
 		if err := bprEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
 			log.Fatal(err)
@@ -77,8 +80,8 @@ func eval() {
 		return bprEval
 	}()
 
-	ml := func() Evaluator {
-		mlEval := NewMergeLayerEvaluator()
+	ml := func() mbpe.Evaluator {
+		mlEval := mbpe.NewMergeLayerEvaluator()
 
 		if err := mlEval.LoadSegmentations("data/mbpe/goldstd_trainset.segmentation.eng.tsv"); err != nil {
 			log.Fatal(err)
@@ -87,8 +90,8 @@ func eval() {
 		return mlEval
 	}()
 
-	fert := func() Evaluator {
-		fertilityEval := NewFertilityEvaluator()
+	fert := func() mbpe.Evaluator {
+		fertilityEval := mbpe.NewFertilityEvaluator()
 
 		if err := fertilityEval.InitDict("data/culturax/en_part_00001-10k.txt"); err != nil {
 			log.Fatal(err)
@@ -97,8 +100,8 @@ func eval() {
 		return fertilityEval
 	}()
 
-	ref := func() Evaluator {
-		refEval := NewReferenceEvaluator()
+	ref := func() mbpe.Evaluator {
+		refEval := mbpe.NewReferenceEvaluator()
 
 		if err := refEval.LoadModel(filepath.Join(tokenizers[0], "vocab.json"), filepath.Join(tokenizers[0], "merges.txt")); err != nil {
 			log.Fatal(err)
@@ -112,7 +115,7 @@ func eval() {
 	runner.AddEvaluator(fert, "Fertility")
 	runner.AddEvaluator(ref, "Reference Overlap")
 
-	baseline := NewRunner()
+	baseline := mbpe.NewRunner()
 
 	baseline.AddTokenizer(*initTokenizer(filepath.Join(tokenizers[0], "vocab.json"), filepath.Join(tokenizers[0], "merges.txt")), filepath.Base(tokenizers[0]))
 
@@ -125,15 +128,15 @@ func eval() {
 
 	_, rawBase := baseline.RunAll(100000, 90000, 80000, 70000, 60000, 50000, 40000, 30000, 20000, 10000, 5000)
 
-	s00 := newPlotData(selectColumn(raw00[2], 0), selectColumn(raw00[1], 0), true, false, "2^16", colornames.Red)
-	s01 := newPlotData(selectColumn(raw01[2], 0), selectColumn(raw01[1], 0), true, false, "2^15", colornames.Green)
-	s02 := newPlotData(selectColumn(raw02[2], 0), selectColumn(raw02[1], 0), true, false, "2^14", colornames.Blue)
+	s00 := mbpe.NewPlotData(mbpe.SelectColumn(raw00[2], 0), mbpe.SelectColumn(raw00[1], 0), true, false, "2^16", colornames.Red)
+	s01 := mbpe.NewPlotData(mbpe.SelectColumn(raw01[2], 0), mbpe.SelectColumn(raw01[1], 0), true, false, "2^15", colornames.Green)
+	s02 := mbpe.NewPlotData(mbpe.SelectColumn(raw02[2], 0), mbpe.SelectColumn(raw02[1], 0), true, false, "2^14", colornames.Blue)
 
-	sBase := newPlotData(selectColumn(rawBase[1], 0), selectColumn(rawBase[0], 0), false, true, "baseline", colornames.Black)
+	sBase := mbpe.NewPlotData(mbpe.SelectColumn(rawBase[1], 0), mbpe.SelectColumn(rawBase[0], 0), false, true, "baseline", colornames.Black)
 
-	data := []plotData{s00, s01, s02, sBase}
+	data := []mbpe.PlotData{s00, s01, s02, sBase}
 
-	plot(data, [2]float64{1.05, 1.32}, [2]float64{0.76, 0.86}, "Fertility", "Merge Layer")
+	mbpe.Plot(data, [2]float64{1.05, 1.32}, [2]float64{0.76, 0.86}, "Fertility", "Merge Layer")
 
 	fmt.Printf(md00)
 	fmt.Println()
@@ -143,36 +146,61 @@ func eval() {
 }
 
 func tokenize() {
-	model := NewMBPE()
+	model := mbpe.NewMBPE()
 
-	err := model.Load("out/en-base/vocab.json", "out/en-base/merges.txt")
+	// err := model.Load("out-m100/00-en-m000/vocab.json", "out-m100/00-en-m000/merges.txt")
+	// err := model.Load("out-m100/01-en-m010/vocab.json", "out-m100/01-en-m010/merges.txt")
+	// err := model.Load("out-m100/02-en-m020/vocab.json", "out-m100/02-en-m020/merges.txt")
+	// err := model.Load("out-m100/03-en-m030/vocab.json", "out-m100/03-en-m030/merges.txt")
+	// err := model.Load("out-m100/04-en-m040/vocab.json", "out-m100/04-en-m040/merges.txt")
+	// err := model.Load("out-m100/05-en-m050/vocab.json", "out-m100/05-en-m050/merges.txt")
+	// err := model.Load("out-m100/06-en-m060/vocab.json", "out-m100/06-en-m060/merges.txt")
+	// err := model.Load("out-m100/07-en-m070/vocab.json", "out-m100/07-en-m070/merges.txt")
+	// err := model.Load("out-m100/08-en-m080/vocab.json", "out-m100/08-en-m080/merges.txt")
+	// err := model.Load("out-m100/09-en-m090/vocab.json", "out-m100/09-en-m090/merges.txt")
+	// err := model.Load("out-m100/10-en-m100/vocab.json", "out-m100/10-en-m100/merges.txt")
+
+	err := model.Load("out-m100/05-en-m050/vocab.json", "out-m100/05-en-m050/merges.txt")
+	// err := model.Load("out-m100/10-en-m100/vocab.json", "out-m100/10-en-m100/merges.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	//
+	// if err := SerializeModel(model, "en-m100.gob"); err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	tokenizer := NewTokenizer(model)
+	// var model *MBPE
+	//
+	// if m, err := DeserializeModel(m000); err != nil {
+	// 	log.Fatal(err)
+	// } else {
+	// 	model = m
+	// }
 
-	byteLevel := NewByteLevel(true)
+	tokenizer := mbpe.NewTokenizer(model)
+
+	byteLevel := mbpe.NewByteLevel(true)
 
 	tokenizer.SetPreTokenizer(byteLevel)
 	tokenizer.SetDecoder(byteLevel)
 
-	ids := tokenizer.Tokenize("To infinity and beyond!")
+	ids := tokenizer.Tokenize(" airsickness")
 	tokens := model.ToString(ids)
 
 	fmt.Println(ids)
 	fmt.Println(tokens)
 
-	fmt.Println(tokenizer.decoder.Decode(tokens))
+	fmt.Println(tokenizer.Decoder().Decode(tokens))
 }
 
 func segmentFile(name string, vocabSize int) {
-	model := NewMBPE()
+	model := mbpe.NewMBPE()
 
-	tokenizer := NewTokenizer(model)
+	tokenizer := mbpe.NewTokenizer(model)
 
-	byteLevel := NewByteLevel(true)
+	byteLevel := mbpe.NewByteLevel(true)
 
 	tokenizer.SetPreTokenizer(byteLevel)
 	tokenizer.SetDecoder(byteLevel)
@@ -183,7 +211,7 @@ func segmentFile(name string, vocabSize int) {
 
 	compounds := make([]string, 0)
 
-	if err := readTsv(name, func(record []string) error {
+	if err := mbpe.ReadTsv(name, func(record []string) error {
 		if len(record) == 0 {
 			return errors.New("unexpected number of fields")
 		}
@@ -204,7 +232,7 @@ func segmentFile(name string, vocabSize int) {
 	}
 
 	for i, compound := range compounds {
-		segmentation, ok := getTokenizerSegmentation(*tokenizer, compound, maxRank)
+		segmentation, ok := mbpe.GetTokenizerSegmentation(*tokenizer, compound, maxRank)
 
 		if !ok {
 			continue
@@ -213,7 +241,7 @@ func segmentFile(name string, vocabSize int) {
 		segmentations[i] = segmentation
 	}
 
-	if err := toFile("segmentations.txt", func(writer *bufio.Writer) error {
+	if err := mbpe.ToFile("segmentations.txt", func(writer *bufio.Writer) error {
 		for i, segmentation := range segmentations {
 			if _, err := writer.WriteString(fmt.Sprintf("%s\t%s\n", strings.TrimLeft(compounds[i], " "), strings.TrimLeft(strings.Join(segmentation, " "), " "))); err != nil {
 				return err
@@ -229,8 +257,8 @@ func segmentFile(name string, vocabSize int) {
 func train() {
 	out := "out"
 
-	morfessor := func(alpha float64) Segmenter {
-		m := NewMorfessor(alpha)
+	morfessor := func(alpha float64) mbpe.Segmenter {
+		m := mbpe.NewMorfessor(alpha)
 
 		if err := m.LoadModel("data/morfessor/semisup_model.proto"); err != nil {
 			log.Fatal(err)
@@ -251,12 +279,12 @@ func train() {
 	m090 := morfessor(0.9)
 	m100 := morfessor(1.0)
 
-	newTrainer := func(segmenter Segmenter) *MBPETrainer {
-		return NewMBPETrainer(NewByteLevel(true), segmenter, NewMBPE(), 1<<17)
+	newTrainer := func(segmenter mbpe.Segmenter) *mbpe.MBPETrainer {
+		return mbpe.NewMBPETrainer(mbpe.NewByteLevel(true), segmenter, mbpe.NewMBPE(), 1<<17)
 	}
 
 	trainers := []struct {
-		*MBPETrainer
+		*mbpe.MBPETrainer
 		string
 	}{
 		{newTrainer(m000), "en-m000"},
@@ -280,7 +308,7 @@ func train() {
 				log.Fatal(err)
 			}
 
-			if err := t.dict.Save(dict); err != nil {
+			if err := t.Dict().Save(dict); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -299,7 +327,7 @@ func train() {
 			log.Fatal(err)
 		}
 
-		if err := t.model.Save(filepath.Join(dir, "vocab.json"), filepath.Join(dir, "merges.txt")); err != nil {
+		if err := t.Model().Save(filepath.Join(dir, "vocab.json"), filepath.Join(dir, "merges.txt")); err != nil {
 			log.Fatal(err)
 		}
 	}

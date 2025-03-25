@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"errors"
@@ -70,7 +70,7 @@ func (bpr *BPREvaluator) evalLegacy(tokenizer Tokenizer, maxRank int) ([]float64
 			continue
 		}
 
-		segmentation, ok := getTokenizerSegmentation(tokenizer, split[0], maxRank)
+		segmentation, ok := GetTokenizerSegmentation(tokenizer, split[0], maxRank)
 
 		if !ok {
 			continue
@@ -106,7 +106,7 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 		var layers [][]string
 
 		if !bpr.chooseBestTokenizationLayer {
-			segmentation, ok := getTokenizerSegmentation(tokenizer, word, maxRank)
+			segmentation, ok := GetTokenizerSegmentation(tokenizer, word, maxRank)
 
 			if !ok {
 				continue
@@ -114,7 +114,7 @@ func (bpr *BPREvaluator) eval(tokenizer Tokenizer, maxRank int) ([]float64, erro
 
 			layers = [][]string{segmentation}
 		} else {
-			segmentation, ok := getTokenizerSegmentationLayered(tokenizer, word, maxRank)
+			segmentation, ok := GetTokenizerSegmentationLayered(tokenizer, word, maxRank)
 
 			if !ok {
 				continue

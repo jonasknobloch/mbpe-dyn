@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"bufio"
@@ -26,6 +26,14 @@ func NewMBPETrainer(preTokenizer PreTokenizer, segmenter Segmenter, model *MBPE,
 		vocabSize:    vocabSize,
 		dict:         NewDict(),
 	}
+}
+
+func (t *MBPETrainer) Model() *MBPE {
+	return t.model
+}
+
+func (t *MBPETrainer) Dict() *Dict {
+	return t.dict
 }
 
 func (t *MBPETrainer) InitDict(names ...string) error {

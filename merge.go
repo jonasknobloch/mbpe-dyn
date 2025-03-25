@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 type Pair [2]string
 

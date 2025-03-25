@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mbpe-dyn</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinch-zoom-element@1.1.1/dist/pinch-zoom-min.js"></script>
+    <script src="wasm_exec.js"></script>
+    <script src="app.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mbpe-panel">
+    <div class="mbpe-panel__form">
+        <input type="text" id="js-input" class="mbpe-input" placeholder="Enter text here" value="I dislike flying because of my airsickness">
+        <div class="mbpe-panel__row">
+            <div class="mbpe-panel__group">
+                <select id="js-model" class="mbpe-select">
+                    <option value="m000">m000</option>
+                    <option value="m010">m010</option>
+                    <option value="m020">m020</option>
+                    <option value="m030">m030</option>
+                    <option value="m040">m040</option>
+                    <option value="m050">m050</option>
+                    <option value="m060">m060</option>
+                    <option value="m070">m070</option>
+                    <option value="m080">m080</option>
+                    <option value="m090">m090</option>
+                    <option value="m100" selected>m100</option>
+                </select>
+                <select id="js-vocab" class="mbpe-select">
+                    <option value="16384">2¹⁴ (16K)</option>
+                    <option value="32768">2¹⁵ (32K)</option>
+                    <option value="65536">2¹⁶ (64K)</option>
+                    <option value="131072" selected>2¹⁷ (128K)</option>
+                </select>
+            </div>
+            <button id="js-tokenize" class="mbpe-button" disabled>Tokenize</button>
+        </div>
+    </div>
+    <div id="js-tabs" class="mbpe-panel__result">
+        <div id="js-message" class="mbpe-panel__message">Initializing tokenizers...</div>
+    </div>
+</div>
+<pinch-zoom id="js-mermaid" class="my-pinch-zoom mbpe-container"></pinch-zoom>
+</body>
+</html>

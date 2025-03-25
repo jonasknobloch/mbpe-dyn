@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"bufio"
@@ -7,6 +7,14 @@ import (
 	"os"
 	"sync"
 )
+
+func ToFile(name string, callback func(writer *bufio.Writer) error) error {
+	return toFile(name, callback)
+}
+
+func ReadTsv(name string, callback func([]string) error) error {
+	return readTsv(name, callback)
+}
 
 func fromFile(name string, callback func(scanner *bufio.Scanner) error) error {
 	file, err := os.Open(name)

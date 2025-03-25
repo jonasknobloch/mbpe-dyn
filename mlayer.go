@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"errors"
@@ -50,7 +50,7 @@ func (ml *MergeLayerEvaluator) evalMorph(tokenizer Tokenizer, maxRank int) ([]fl
 		word := split[0]
 		gold := split[1:]
 
-		layers, ok := getTokenizerSegmentationLayered(tokenizer, word, maxRank)
+		layers, ok := GetTokenizerSegmentationLayered(tokenizer, word, maxRank)
 
 		if !ok {
 			continue

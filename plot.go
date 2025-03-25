@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"gonum.org/v1/gonum/interp"
@@ -10,7 +10,7 @@ import (
 	"sort"
 )
 
-type plotData struct {
+type PlotData struct {
 	xs     []float64
 	ys     []float64
 	line   bool
@@ -19,8 +19,8 @@ type plotData struct {
 	color  color.RGBA
 }
 
-func newPlotData(xs, ys []float64, line, spline bool, label string, color color.RGBA) plotData {
-	return plotData{
+func NewPlotData(xs, ys []float64, line, spline bool, label string, color color.RGBA) PlotData {
+	return PlotData{
 		xs:     xs,
 		ys:     ys,
 		line:   line,
@@ -30,24 +30,24 @@ func newPlotData(xs, ys []float64, line, spline bool, label string, color color.
 	}
 }
 
-func (p plotData) Len() int {
+func (p PlotData) Len() int {
 	return len(p.xs)
 }
 
-func (p plotData) Less(i, j int) bool {
+func (p PlotData) Less(i, j int) bool {
 	return p.xs[i] < p.xs[j]
 }
 
-func (p plotData) Swap(i, j int) {
+func (p PlotData) Swap(i, j int) {
 	p.xs[i], p.xs[j] = p.xs[j], p.xs[i]
 	p.ys[i], p.ys[j] = p.ys[j], p.ys[i]
 }
 
-func (p plotData) XY(i int) (x, y float64) {
+func (p PlotData) XY(i int) (x, y float64) {
 	return p.xs[i], p.ys[i]
 }
 
-func plot(data []plotData, rangeX, rangeY [2]float64, labelX, labelY string) {
+func Plot(data []PlotData, rangeX, rangeY [2]float64, labelX, labelY string) {
 	p := pl.New()
 
 	p.X.Min = rangeX[0]
@@ -58,7 +58,7 @@ func plot(data []plotData, rangeX, rangeY [2]float64, labelX, labelY string) {
 	p.X.Label.Text = labelX
 	p.Y.Label.Text = labelY
 
-	drawSpline := func(s plotData) {
+	drawSpline := func(s PlotData) {
 		sort.Sort(s)
 
 		predictor := interp.FittablePredictor(&interp.AkimaSpline{})
@@ -79,7 +79,7 @@ func plot(data []plotData, rangeX, rangeY [2]float64, labelX, labelY string) {
 		p.Legend.Add(s.label, line)
 	}
 
-	drawScatter := func(s plotData) {
+	drawScatter := func(s PlotData) {
 		if scatter, err := plotter.NewScatter(s); err != nil {
 			log.Fatal(err)
 		} else {

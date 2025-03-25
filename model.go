@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"bufio"
@@ -22,6 +22,10 @@ type MBPE struct {
 
 func NewMBPE() *MBPE {
 	return &MBPE{}
+}
+
+func (m *MBPE) Vocab() []string {
+	return m.vocab
 }
 
 func (m *MBPE) InitVocab(n int) {

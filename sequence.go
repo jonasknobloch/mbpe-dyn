@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 type Sequence []Segmenter
 

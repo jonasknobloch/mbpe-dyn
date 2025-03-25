@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"fmt"
@@ -146,7 +146,7 @@ func markdownTable(table [][]string, widths []int) string {
 	return sb.String()
 }
 
-func getTokenizerSegmentation(tokenizer Tokenizer, text string, maxRank int) ([]string, bool) {
+func GetTokenizerSegmentation(tokenizer Tokenizer, text string, maxRank int) ([]string, bool) {
 	var model *MBPE
 
 	if mbpe, ok := tokenizer.model.(*MBPE); !ok {
@@ -186,7 +186,7 @@ func getTokenizerSegmentation(tokenizer Tokenizer, text string, maxRank int) ([]
 	return result, true
 }
 
-func getTokenizerSegmentationLayered(tokenizer Tokenizer, text string, maxRank int) ([][]string, bool) {
+func GetTokenizerSegmentationLayered(tokenizer Tokenizer, text string, maxRank int) ([][]string, bool) {
 	var model *MBPE
 
 	if mbpe, ok := tokenizer.model.(*MBPE); !ok {
@@ -232,7 +232,7 @@ func getTokenizerSegmentationLayered(tokenizer Tokenizer, text string, maxRank i
 	return segmentations, true
 }
 
-func selectColumn(series [][]float64, j int) []float64 {
+func SelectColumn(series [][]float64, j int) []float64 {
 	result := make([]float64, len(series))
 
 	for i, row := range series {

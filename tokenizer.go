@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 type Tokenizer struct {
 	preTokenizer PreTokenizer
@@ -10,6 +10,14 @@ func NewTokenizer(model Model) *Tokenizer {
 	return &Tokenizer{
 		model: model,
 	}
+}
+
+func (t *Tokenizer) PreTokenizer() PreTokenizer {
+	return t.preTokenizer
+}
+
+func (t *Tokenizer) Decoder() Decoder {
+	return t.decoder
 }
 
 func (t *Tokenizer) SetPreTokenizer(preTokenizer PreTokenizer) {

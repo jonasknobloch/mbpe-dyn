@@ -1,4 +1,4 @@
-package main
+package mbpe
 
 import (
 	"github.com/dlclark/regexp2"
