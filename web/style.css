@@ -60,7 +60,7 @@ body {
 
 .mbpe-panel__form {
     box-sizing: border-box;
-    display: flex;
+    display: grid;
     flex-direction: column;
     gap: 10px;
     width: 100%;
@@ -78,6 +78,7 @@ body {
 .mbpe-select {
     padding: 10px 35px 10px 10px;
     font-size: 16px;
+    color: var(--primary-color);
     appearance: none;
     cursor: pointer;
     background-color: white;
@@ -129,13 +130,14 @@ body {
     max-width: calc(100vw - 40px);
     min-height: 66px;
     padding: 10px;
-    overflow: scroll;
+    overflow: auto;
     border-top: 1px solid var(--border-color);
 }
 
 .mbpe-tab {
     padding: 4px;
     font-weight: bold;
+    color: var(--primary-color);
     cursor: pointer;
     background: transparent;
     border: 1px dashed var(--primary-color);
@@ -172,5 +174,11 @@ body {
 }
 
 .mbpe-container {
-    width: 100vw; height: 100vh;
+    z-index: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.mbpe-container:not(:empty) {
+    cursor: move;
 }
