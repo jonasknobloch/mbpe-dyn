@@ -18,6 +18,29 @@ func main() {
 	// eval()
 	// train()
 	// server()
+
+	initTokenizer := func(vocab, merges string) *mbpe.Tokenizer {
+		model := mbpe.NewMBPE()
+
+		if err := model.Load(vocab, merges); err != nil {
+			log.Fatal(err)
+		}
+
+		tokenizer := mbpe.NewTokenizer(model)
+
+		byteLevel := mbpe.NewByteLevel(true)
+
+		tokenizer.SetPreTokenizer(byteLevel)
+		tokenizer.SetDecoder(byteLevel)
+
+		return tokenizer
+	}
+
+	segmenter := mbpe.NewPerplexity()
+
+	segmenter.SetTokenizer(initTokenizer("gpt2/vocab.json", "gpt2/merges.txt"))
+
+	segmenter.Segment("d")
 }
 
 func eval() {
