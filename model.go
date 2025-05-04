@@ -3,6 +3,7 @@ package mbpe
 import (
 	"bufio"
 	"fmt"
+	"mbpe-dyn/hf"
 	"strings"
 )
 
@@ -26,6 +27,10 @@ func NewMBPE() *MBPE {
 
 func (m *MBPE) Vocab() []string {
 	return m.vocab
+}
+
+func (m *MBPE) Merges() [][2]string {
+	return m.merges
 }
 
 func (m *MBPE) InitVocab(n int) {
@@ -197,7 +202,7 @@ func (m *MBPE) ToString(ids []int) []string {
 }
 
 func (m *MBPE) Save(vocab, merges string) error {
-	if err := toJSON(vocab, Vocab[string, int](m.atoi)); err != nil {
+	if err := toJSON(vocab, hf.Vocab(m.atoi)); err != nil {
 		return err
 	}
 

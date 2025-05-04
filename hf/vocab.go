@@ -1,22 +1,21 @@
-package mbpe
+package hf
 
 import (
 	"bytes"
-	"cmp"
 	"encoding/json"
 	"sort"
 )
 
-type Vocab[K comparable, V cmp.Ordered] map[K]V
+type Vocab map[string]int
 
-func (m Vocab[K, V]) MarshalJSON() ([]byte, error) {
-	vtok := make(map[V]K, len(m))
+func (m Vocab) MarshalJSON() ([]byte, error) {
+	vtok := make(map[int]string, len(m))
 
 	for key, value := range m {
 		vtok[value] = key
 	}
 
-	values := make([]V, 0, len(vtok))
+	values := make([]int, 0, len(vtok))
 
 	for value := range vtok {
 		values = append(values, value)
