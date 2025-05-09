@@ -8,6 +8,7 @@ import (
 	"golang.org/x/image/colornames"
 	"log"
 	mbpe "mbpe-dyn"
+	"mbpe-dyn/hf"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ func main() {
 	// eval()
 	// train()
 	// server()
+	// serialize()
 }
 
 func eval() {
@@ -330,5 +332,50 @@ func train() {
 		if err := t.Model().Save(filepath.Join(dir, "vocab.json"), filepath.Join(dir, "merges.txt")); err != nil {
 			log.Fatal(err)
 		}
+	}
+}
+
+func serialize() {
+	model := mbpe.NewMBPE()
+
+	if err := model.Load("out/00-en-m000/vocab.json", "out/00-en-m000/merges.txt"); err != nil {
+		log.Fatal(err)
+	}
+
+	tokenizer := hf.NewTokenizer()
+
+	if err := tokenizer.Decode("data/mbpe/empty.json"); err != nil {
+		log.Fatal(err)
+	}
+
+	atoi := make(map[string]int)
+
+	last := 0
+
+	for i, token := range model.Vocab()[:1024] {
+		atoi[token] = i
+
+		if i > last {
+			last = i
+		}
+	}
+
+	tokenizer.Model.Vocab = atoi
+	tokenizer.Model.Merges = model.Merges()[:1024-len(model.Alphabet())]
+
+	eot := hf.AddedToken{
+		ID:         last + 1,
+		Content:    "<|endoftext|>",
+		SingleWord: false,
+		Lstrip:     false,
+		Rstrip:     false,
+		Normalized: true,
+		Special:    true,
+	}
+
+	tokenizer.AddedTokens = []hf.AddedToken{eot}
+
+	if err := tokenizer.Encode("tokenizer.json"); err != nil {
+		log.Fatal(err)
 	}
 }
