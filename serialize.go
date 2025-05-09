@@ -32,6 +32,8 @@ func (m Vocab[K, V]) MarshalJSON() ([]byte, error) {
 
 	enc := json.NewEncoder(&buf)
 
+	enc.SetEscapeHTML(false)
+
 	for i, value := range values {
 		if i > 0 {
 			buf.WriteByte(',')

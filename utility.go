@@ -85,6 +85,8 @@ func toJSON(name string, data interface{}) error {
 
 	encoder := json.NewEncoder(file)
 
+	encoder.SetEscapeHTML(false)
+
 	if err := encoder.Encode(data); err != nil {
 		return err
 	}
