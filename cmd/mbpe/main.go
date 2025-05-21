@@ -342,6 +342,8 @@ func serialize() {
 		log.Fatal(err)
 	}
 
+	model.Trim(50256)
+
 	tokenizer := hf.NewTokenizer()
 
 	if err := tokenizer.Decode("data/mbpe/empty.json"); err != nil {
@@ -352,7 +354,7 @@ func serialize() {
 
 	last := 0
 
-	for i, token := range model.Vocab()[:1024] {
+	for i, token := range model.Vocab() {
 		atoi[token] = i
 
 		if i > last {
@@ -361,7 +363,7 @@ func serialize() {
 	}
 
 	tokenizer.Model.Vocab = atoi
-	tokenizer.Model.Merges = model.Merges()[:1024-len(model.Alphabet())]
+	tokenizer.Model.Merges = model.Merges()
 
 	eot := hf.AddedToken{
 		ID:         last + 1,

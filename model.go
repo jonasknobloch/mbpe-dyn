@@ -288,3 +288,31 @@ func (m *MBPE) Load(vocab, merges string) error {
 
 	return nil
 }
+
+func (m *MBPE) Trim(n int) {
+	nVocab := len(m.Vocab())
+	nAlphabet := len(m.Alphabet())
+	nMerges := len(m.Merges())
+
+	if n > nVocab {
+		panic("new vocab size exceeds current vocab size")
+	}
+
+	if n < nAlphabet {
+		panic("alphabet exceeds new vocab size")
+	}
+
+	r := n - nAlphabet
+
+	for i := n; i < nVocab; i++ {
+		delete(m.atoi, m.itoa[i])
+		delete(m.itoa, i)
+	}
+
+	for j := r; j < nMerges; j++ {
+		delete(m.ranks, m.merges[j])
+	}
+
+	m.vocab = m.vocab[:n]
+	m.merges = m.merges[:r]
+}
