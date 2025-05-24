@@ -11,6 +11,7 @@ type Chunk struct {
 type Change struct {
 	delta  float64
 	update bool
+	remove bool
 }
 
 func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
@@ -191,11 +192,13 @@ func (c *Chunk) TrackedMerge(merge Merge) (map[Pair]Change, float64) {
 			changes[pair] = Change{
 				delta:  weightAfter - weightBefore,
 				update: true,
+				remove: false,
 			}
 		} else {
 			changes[pair] = Change{
 				delta:  -weightBefore,
-				update: false, // remove
+				update: false,
+				remove: true,
 			}
 		}
 	}
@@ -204,7 +207,8 @@ func (c *Chunk) TrackedMerge(merge Merge) (map[Pair]Change, float64) {
 		if _, ok := before[pair]; !ok {
 			changes[pair] = Change{
 				delta:  weightAfter,
-				update: false, // add
+				update: false,
+				remove: false,
 			}
 		}
 	}

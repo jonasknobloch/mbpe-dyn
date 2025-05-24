@@ -201,8 +201,17 @@ func (t *MBPETrainer) Train() {
 			for pair, change := range changes {
 				mergeWeights[pair] += change.delta
 
-				if change.delta <= 0 || change.update {
-					continue // don't queue removals and positive weight updates
+				// After updating counts (weights), we need to collect postions for all potential merges.
+				// With alpha set to zero (reference), checking if delta > 0 is sufficient, since pair counts
+				// can only decrease - meaning only new pairs have a positive count.
+				// In fact the Hugging Face implementation checks for count > 0.
+
+				// Alpha > 0 enables positive weight updates, as well as the removal and addition of new pairs
+				// with a zero count. Sticking with checking for count > 0 could then lead to queueing duplicated
+				// merge operations.
+
+				if change.remove || change.update {
+					continue // don't queue removals and weight updates
 				}
 
 				if _, ok := pairPositions[pair]; !ok {
