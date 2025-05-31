@@ -8,7 +8,6 @@ import (
 	"golang.org/x/image/colornames"
 	"log"
 	mbpe "mbpe-dyn"
-	"mbpe-dyn/hf"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,30 +22,14 @@ func main() {
 }
 
 func eval() {
-	tokenizers := make([]string, 0)
+	base := "out/morfessor"
 
-	base := "out-m100"
+	var tokenizers []string
 
-	if err := filepath.WalkDir(base, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		rel, err := filepath.Rel(base, path)
-
-		if err != nil {
-			return err
-		}
-
-		depth := strings.Count(rel, string(os.PathSeparator))
-
-		if d.IsDir() && rel != "." && depth == 0 {
-			tokenizers = append(tokenizers, path)
-		}
-
-		return nil
-	}); err != nil {
+	if paths, err := subDirs(base); err != nil {
 		log.Fatal(err)
+	} else {
+		tokenizers = paths
 	}
 
 	initTokenizer := func(vocab, merges string) *mbpe.Tokenizer {
@@ -95,7 +78,7 @@ func eval() {
 	fert := func() mbpe.Evaluator {
 		fertilityEval := mbpe.NewFertilityEvaluator()
 
-		if err := fertilityEval.InitDict("data/culturax/en_part_00001-10k.txt"); err != nil {
+		if err := fertilityEval.InitDict("data/babyllm/test/all.test"); err != nil {
 			log.Fatal(err)
 		}
 
@@ -124,19 +107,21 @@ func eval() {
 	baseline.AddEvaluator(ml, "Merge Layer")
 	baseline.AddEvaluator(fert, "Fertility")
 
-	md00, raw00 := runner.RunAll(1 << 16)
+	md00, raw00 := runner.RunAll(50256)
 	md01, raw01 := runner.RunAll(1 << 15)
 	md02, raw02 := runner.RunAll(1 << 14)
+	md03, raw03 := runner.RunAll(1 << 13)
 
-	_, rawBase := baseline.RunAll(100000, 90000, 80000, 70000, 60000, 50000, 40000, 30000, 20000, 10000, 5000)
+	_, rawBase := baseline.RunAll(100000, 90000, 80000, 70000, 60000, 50256, 40000, 30000, 20000, 10000, 5000)
 
-	s00 := mbpe.NewPlotData(mbpe.SelectColumn(raw00[2], 0), mbpe.SelectColumn(raw00[1], 0), true, false, "2^16", colornames.Red)
-	s01 := mbpe.NewPlotData(mbpe.SelectColumn(raw01[2], 0), mbpe.SelectColumn(raw01[1], 0), true, false, "2^15", colornames.Green)
-	s02 := mbpe.NewPlotData(mbpe.SelectColumn(raw02[2], 0), mbpe.SelectColumn(raw02[1], 0), true, false, "2^14", colornames.Blue)
+	s00 := mbpe.NewPlotData(mbpe.SelectColumn(raw00[2], 0), mbpe.SelectColumn(raw00[1], 0), true, false, "50256", colornames.Red)
+	s01 := mbpe.NewPlotData(mbpe.SelectColumn(raw01[2], 0), mbpe.SelectColumn(raw01[1], 0), true, false, "32768", colornames.Green)
+	s02 := mbpe.NewPlotData(mbpe.SelectColumn(raw02[2], 0), mbpe.SelectColumn(raw02[1], 0), true, false, "16384", colornames.Blue)
+	s03 := mbpe.NewPlotData(mbpe.SelectColumn(raw03[2], 0), mbpe.SelectColumn(raw03[1], 0), true, false, "8192", colornames.Purple)
 
 	sBase := mbpe.NewPlotData(mbpe.SelectColumn(rawBase[1], 0), mbpe.SelectColumn(rawBase[0], 0), false, true, "baseline", colornames.Black)
 
-	data := []mbpe.PlotData{s00, s01, s02, sBase}
+	data := []mbpe.PlotData{s00, s01, s02, s03, sBase}
 
 	mbpe.Plot(data, [2]float64{1.05, 1.32}, [2]float64{0.76, 0.86}, "Fertility", "Merge Layer")
 
@@ -145,6 +130,8 @@ func eval() {
 	fmt.Printf(md01)
 	fmt.Println()
 	fmt.Printf(md02)
+	fmt.Println()
+	fmt.Println(md03)
 }
 
 func tokenize() {
@@ -257,7 +244,7 @@ func segmentFile(name string, vocabSize int) {
 }
 
 func train() {
-	out := "out"
+	out := "out/morfessor"
 
 	morfessor := func(alpha float64) mbpe.Segmenter {
 		m := mbpe.NewMorfessor(alpha)
@@ -268,6 +255,8 @@ func train() {
 
 		return m
 	}
+
+	// mbpe.InvertWeightFunction = true
 
 	m000 := morfessor(0.0)
 	m010 := morfessor(0.1)
@@ -289,24 +278,33 @@ func train() {
 		*mbpe.MBPETrainer
 		string
 	}{
-		{newTrainer(m000), "en-m000"},
-		{newTrainer(m010), "en-m010"},
-		{newTrainer(m020), "en-m020"},
-		{newTrainer(m030), "en-m030"},
-		{newTrainer(m040), "en-m040"},
-		{newTrainer(m050), "en-m050"},
-		{newTrainer(m060), "en-m060"},
-		{newTrainer(m070), "en-m070"},
-		{newTrainer(m080), "en-m080"},
-		{newTrainer(m090), "en-m090"},
-		{newTrainer(m100), "en-m100"},
+		{newTrainer(m000), "m000_babylm"},
+		{newTrainer(m010), "m010_babylm"},
+		{newTrainer(m020), "m020_babylm"},
+		{newTrainer(m030), "m030_babylm"},
+		{newTrainer(m040), "m040_babylm"},
+		{newTrainer(m050), "m050_babylm"},
+		{newTrainer(m060), "m060_babylm"},
+		{newTrainer(m070), "m070_babylm"},
+		{newTrainer(m080), "m080_babylm"},
+		{newTrainer(m090), "m090_babylm"},
+		{newTrainer(m100), "m100_babylm"},
 	}
 
 	for i, t := range trainers {
 		dict := filepath.Join(out, "dict.txt")
 
+		raw := []string{
+			"data/babyllm/train_100M/bnc_spoken.train",
+			"data/babyllm/train_100M/childes.train",
+			"data/babyllm/train_100M/gutenberg.train",
+			"data/babyllm/train_100M/open_subtitles.train",
+			"data/babyllm/train_100M/simple_wiki.train",
+			"data/babyllm/train_100M/switchboard.train",
+		}
+
 		if err := t.LoadDict(dict); err != nil {
-			if err := t.InitDict("data/culturax/en_part_00000.txt"); err != nil {
+			if err := t.InitDict(raw...); err != nil {
 				log.Fatal(err)
 			}
 
@@ -323,7 +321,7 @@ func train() {
 
 		t.Train()
 
-		dir := filepath.Join(out, fmt.Sprintf("%02d-%s", i, t.string))
+		dir := filepath.Join(out, t.string)
 
 		if err := os.Mkdir(dir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 			log.Fatal(err)
@@ -336,48 +334,90 @@ func train() {
 }
 
 func serialize() {
-	model := mbpe.NewMBPE()
+	base := "out/morfessor"
 
-	if err := model.Load("out/00-en-m000/vocab.json", "out/00-en-m000/merges.txt"); err != nil {
+	var paths []string
+
+	if ps, err := subDirs(base); err != nil {
 		log.Fatal(err)
+	} else {
+		paths = ps
 	}
 
-	model.Trim(50256)
+	steps := []int{50256, 32768, 16384, 8192}
 
-	tokenizer := hf.NewTokenizer()
+	for _, step := range steps {
+		for _, path := range paths {
+			model := mbpe.NewMBPE()
 
-	if err := tokenizer.Decode("data/mbpe/empty.json"); err != nil {
-		log.Fatal(err)
-	}
+			if err := model.Load(filepath.Join(path, "vocab.json"), filepath.Join(path, "merges.txt")); err != nil {
+				log.Fatal(err)
+			}
 
-	atoi := make(map[string]int)
+			model.Trim(step)
 
-	last := 0
+			dir := fmt.Sprintf("tokenizer_gpt2_%d_%s_v2", step, filepath.Base(path))
 
-	for i, token := range model.Vocab() {
-		atoi[token] = i
+			out := filepath.Join("tokenizers", dir)
 
-		if i > last {
-			last = i
+			if err := os.Mkdir(out, os.ModePerm); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := model.Save(filepath.Join(out, "vocab.json"), filepath.Join(out, "merges.txt")); err != nil {
+				log.Fatal(err)
+			}
+
+			var config string
+			var special string
+
+			if bs, err := os.ReadFile("scripts/saved_tokenizer_gpt2/tokenizer_config.json"); err != nil {
+				log.Fatal(bs)
+			} else {
+				config = string(bs)
+			}
+
+			if bs, err := os.ReadFile("scripts/saved_tokenizer_gpt2/special_tokens_map.json"); err != nil {
+				log.Fatal(err)
+			} else {
+				special = string(bs)
+			}
+
+			config = strings.Replace(config, "50256", fmt.Sprintf("%d", step), -1)
+
+			if err := os.WriteFile(filepath.Join(out, "tokenizer_config.json"), []byte(config), os.ModePerm); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := os.WriteFile(filepath.Join(out, "special_tokens_map.json"), []byte(special), os.ModePerm); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
+}
 
-	tokenizer.Model.Vocab = atoi
-	tokenizer.Model.Merges = model.Merges()
+func subDirs(base string) ([]string, error) {
+	paths := make([]string, 0)
 
-	eot := hf.AddedToken{
-		ID:         last + 1,
-		Content:    "<|endoftext|>",
-		SingleWord: false,
-		Lstrip:     false,
-		Rstrip:     false,
-		Normalized: true,
-		Special:    true,
-	}
+	err := filepath.WalkDir(base, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
-	tokenizer.AddedTokens = []hf.AddedToken{eot}
+		rel, err := filepath.Rel(base, path)
 
-	if err := tokenizer.Encode("tokenizer.json"); err != nil {
-		log.Fatal(err)
-	}
+		if err != nil {
+			return err
+		}
+
+		depth := strings.Count(rel, string(os.PathSeparator))
+
+		if d.IsDir() && rel != "." && depth == 0 {
+			paths = append(paths, path)
+		}
+
+		return nil
+	})
+
+	return paths, err
 }
