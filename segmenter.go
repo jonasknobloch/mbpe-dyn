@@ -11,6 +11,8 @@ type Segmenter interface {
 	Segment(string) ([]string, float64)
 }
 
+var MergePrefixWhiteSpace = true
+
 func SegmentWithoutPrefixWhitespace(compound string, segmenter Segmenter) ([]string, float64) {
 	removedPrefixSpace := stripPrefixWhitespace(&compound)
 
@@ -35,6 +37,12 @@ func stripPrefixWhitespace(compound *string) bool {
 
 func addPrefixWhitespace(segments *[]string) {
 	if len(*segments) == 0 {
+		return
+	}
+
+	if !MergePrefixWhiteSpace {
+		*segments = append([]string{"Ġ"}, *segments...)
+
 		return
 	}
 
