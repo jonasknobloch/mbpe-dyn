@@ -14,6 +14,8 @@ type Change struct {
 	remove bool
 }
 
+var InvertWeightFunction = false
+
 func NewChunk(src string, n int, splits []string, alpha float64) *Chunk {
 	bounds := []int{0}
 
@@ -90,6 +92,10 @@ func (c *Chunk) Pairs() []Pair {
 }
 
 func (c *Chunk) WeightedPairs() ([]Pair, []float64, float64) {
+	return c.weightedPairs(InvertWeightFunction)
+}
+
+func (c *Chunk) weightedPairs(inverse bool) ([]Pair, []float64, float64) {
 	pairs := c.Pairs()
 
 	if len(pairs) == 0 {
@@ -97,7 +103,6 @@ func (c *Chunk) WeightedPairs() ([]Pair, []float64, float64) {
 	}
 
 	clashes := make([]bool, len(pairs))
-	nClashes := 0
 
 	for i := 0; i < len(c.bounds)-2; i++ {
 		lower := c.bounds[i]
@@ -106,22 +111,39 @@ func (c *Chunk) WeightedPairs() ([]Pair, []float64, float64) {
 		for _, b := range c.morphs {
 			if b > lower && b < upper {
 				clashes[i] = true
-				nClashes++
 
 				break
 			}
 		}
 	}
 
+	weights, epsilon := c.pairWeights(pairs, clashes, inverse)
+
+	for i := range weights {
+		weights[i] *= float64(c.n)
+	}
+
+	epsilon *= float64(c.n)
+
+	return pairs, weights, epsilon
+}
+
+func (c *Chunk) pairWeights(pairs []Pair, clashes []bool, inverse bool) ([]float64, float64) {
 	weights := make([]float64, len(pairs))
 
 	n := float64(len(weights))
-	k := float64(nClashes)
+	k := 0.0
+
+	for _, v := range clashes {
+		if v != inverse {
+			k++
+		}
+	}
 
 	for i := range pairs {
 		var w float64
 
-		if clashes[i] {
+		if clashes[i] != inverse {
 			w = (1 - c.alpha) + (c.alpha * (k - 1) / n)
 		} else {
 			w = 1 + (c.alpha * k / n)
@@ -132,13 +154,7 @@ func (c *Chunk) WeightedPairs() ([]Pair, []float64, float64) {
 
 	epsilon := c.alpha * k / n // no merge
 
-	for i := range weights {
-		weights[i] *= float64(c.n)
-	}
-
-	epsilon *= float64(c.n)
-
-	return pairs, weights, epsilon
+	return weights, epsilon
 }
 
 func (c *Chunk) MergePairIdx(i int) {
