@@ -242,6 +242,8 @@ func (c *Chunk) Tokens() []string {
 	return r
 }
 
+// Deprecated: Use Inverter segmenter instead. Disable MergePrefixWhiteSpace
+// to maintain behavior of Invert during training.
 func (c *Chunk) Invert() {
 	n := len(c.bounds) - len(c.morphs) - 2
 

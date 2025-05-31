@@ -5,16 +5,16 @@ import (
 	"testing"
 )
 
-type testSegmenter struct{}
+type baseUniformizer struct{}
 
-func (t *testSegmenter) Segment(text string) ([]string, float64) {
+func (s *baseUniformizer) Segment(text string) ([]string, float64) {
 	return []string{"foo", "bar"}, 1.0
 }
 
 func TestUniformizer_Segment(t *testing.T) {
-	d := NewUniformizer(&testSegmenter{})
+	u := NewUniformizer(&baseUniformizer{})
 
-	segmentation, _ := d.Segment("foobarbaz")
+	segmentation, _ := u.Segment("foobarbaz")
 
 	expected := []string{"foob", "arbaz"}
 
