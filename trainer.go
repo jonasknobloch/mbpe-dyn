@@ -114,6 +114,8 @@ func (t *MBPETrainer) Train() {
 			chunks[i].Split(segments)
 			chunks[i].Alpha(alpha)
 
+			// chunks[i].Invert()
+
 			pbSplit.Increment()
 			pbSplit.Print()
 		}

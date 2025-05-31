@@ -241,3 +241,31 @@ func (c *Chunk) Tokens() []string {
 
 	return r
 }
+
+func (c *Chunk) Invert() {
+	n := len(c.bounds) - len(c.morphs) - 2
+
+	r := make([]int, 0, n)
+
+	for _, b := range c.bounds[1 : len(c.bounds)-1] {
+		found := false
+
+		for _, m := range c.morphs {
+			if b == m {
+				found = true
+
+				break
+			}
+		}
+
+		if !found {
+			r = append(r, b)
+		}
+	}
+
+	if len(r) != n {
+		panic("unexpected number of morphs")
+	}
+
+	c.morphs = r
+}
