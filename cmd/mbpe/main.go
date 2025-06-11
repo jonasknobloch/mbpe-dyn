@@ -107,23 +107,25 @@ func eval() {
 	baseline.AddEvaluator(ml, "Merge Layer")
 	baseline.AddEvaluator(fert, "Fertility")
 
-	md00, raw00 := runner.RunAll(50256)
-	md01, raw01 := runner.RunAll(1 << 15)
-	md02, raw02 := runner.RunAll(1 << 14)
-	md03, raw03 := runner.RunAll(1 << 13)
+	md00, raw00 := runner.RunAll(100512)
+	md01, raw01 := runner.RunAll(50256)
+	md02, raw02 := runner.RunAll(32768)
+	md03, raw03 := runner.RunAll(16384)
+	md04, raw04 := runner.RunAll(8192)
 
-	_, rawBase := baseline.RunAll(100000, 90000, 80000, 70000, 60000, 50256, 40000, 30000, 20000, 10000, 5000)
+	_, rawBase := baseline.RunAll(105000, 100512, 90000, 80000, 70000, 60000, 50000, 40000, 32768, 20000, 16384, 8192, 5000)
 
-	s00 := mbpe.NewPlotData(mbpe.SelectColumn(raw00[2], 0), mbpe.SelectColumn(raw00[1], 0), true, false, "50256", colornames.Red)
-	s01 := mbpe.NewPlotData(mbpe.SelectColumn(raw01[2], 0), mbpe.SelectColumn(raw01[1], 0), true, false, "32768", colornames.Green)
-	s02 := mbpe.NewPlotData(mbpe.SelectColumn(raw02[2], 0), mbpe.SelectColumn(raw02[1], 0), true, false, "16384", colornames.Blue)
-	s03 := mbpe.NewPlotData(mbpe.SelectColumn(raw03[2], 0), mbpe.SelectColumn(raw03[1], 0), true, false, "8192", colornames.Purple)
+	s00 := mbpe.NewPlotData(mbpe.SelectColumn(raw00[2], 0), mbpe.SelectColumn(raw00[1], 0), true, false, "100512", colornames.Red)
+	s01 := mbpe.NewPlotData(mbpe.SelectColumn(raw01[2], 0), mbpe.SelectColumn(raw01[1], 0), true, false, "50256", colornames.Green)
+	s02 := mbpe.NewPlotData(mbpe.SelectColumn(raw02[2], 0), mbpe.SelectColumn(raw02[1], 0), true, false, "32768", colornames.Blue)
+	s03 := mbpe.NewPlotData(mbpe.SelectColumn(raw03[2], 0), mbpe.SelectColumn(raw03[1], 0), true, false, "16384", colornames.Purple)
+	s04 := mbpe.NewPlotData(mbpe.SelectColumn(raw04[2], 0), mbpe.SelectColumn(raw04[1], 0), true, false, "8192", colornames.Brown)
 
 	sBase := mbpe.NewPlotData(mbpe.SelectColumn(rawBase[1], 0), mbpe.SelectColumn(rawBase[0], 0), false, true, "baseline", colornames.Black)
 
-	data := []mbpe.PlotData{s00, s01, s02, s03, sBase}
+	data := []mbpe.PlotData{s00, s01, s02, s03, s04, sBase}
 
-	mbpe.Plot(data, [2]float64{1.05, 1.32}, [2]float64{0.76, 0.86}, "Fertility", "Merge Layer")
+	mbpe.Plot(data, [2]float64{1.00, 1.2}, [2]float64{0.75, 0.90}, "Fertility", "Merge Layer")
 
 	fmt.Printf(md00)
 	fmt.Println()
@@ -132,6 +134,8 @@ func eval() {
 	fmt.Printf(md02)
 	fmt.Println()
 	fmt.Println(md03)
+	fmt.Println()
+	fmt.Println(md04)
 }
 
 func tokenize() {
@@ -344,7 +348,7 @@ func serialize() {
 		paths = ps
 	}
 
-	steps := []int{50256, 32768, 16384, 8192}
+	steps := []int{100512, 50256, 32768, 16384, 8192}
 
 	for _, step := range steps {
 		for _, path := range paths {
