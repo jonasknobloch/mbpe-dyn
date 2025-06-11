@@ -97,10 +97,19 @@ func eval() {
 		return refEval
 	}()
 
+	wug := func() mbpe.Evaluator {
+		wugEval := mbpe.NewAdjectiveSuffixEvaluator()
+
+		// wugEval.SetReportAverage(true)
+
+		return wugEval
+	}
+
 	runner.AddEvaluator(bpr, "Boundary Precision Recall")
 	runner.AddEvaluator(ml, "Merge Layer")
 	runner.AddEvaluator(fert, "Fertility")
 	runner.AddEvaluator(ref, "Reference Overlap")
+	runner.AddEvaluator(wug(), "Nonce Adjectives")
 
 	baseline := mbpe.NewRunner()
 
