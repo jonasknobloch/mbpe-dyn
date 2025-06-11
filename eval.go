@@ -14,6 +14,7 @@ type EvalRunner struct {
 	evaluators     []Evaluator
 	tokenizerNames []string
 	evaluatorNames []string
+	format         string
 }
 
 func NewRunner() *EvalRunner {
@@ -22,7 +23,12 @@ func NewRunner() *EvalRunner {
 		evaluators:     make([]Evaluator, 0),
 		tokenizerNames: make([]string, 0),
 		evaluatorNames: make([]string, 0),
+		format:         "%.2f",
 	}
+}
+
+func (r *EvalRunner) SetFormat(format string) {
+	r.format = format
 }
 
 func (r *EvalRunner) AddTokenizer(tokenizer Tokenizer, name string) {
@@ -100,7 +106,7 @@ func (r *EvalRunner) RunAll(vocabSizes ...int) (string, [][][]float64) {
 				s := make([]string, len(result))
 
 				for k, v := range result {
-					s[k] = fmt.Sprintf("%.2f", v)
+					s[k] = fmt.Sprintf(r.format, v)
 				}
 
 				row[j+2] = strings.Join(s, ", ")

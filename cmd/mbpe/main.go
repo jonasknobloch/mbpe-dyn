@@ -51,6 +51,8 @@ func eval() {
 
 	runner := mbpe.NewRunner()
 
+	runner.SetFormat("%.4f")
+
 	for _, name := range tokenizers {
 		runner.AddTokenizer(*initTokenizer(filepath.Join(name, "vocab.json"), filepath.Join(name, "merges.txt")), filepath.Base(name))
 	}
