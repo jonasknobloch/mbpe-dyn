@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -44,8 +45,6 @@ func main() {
 
 	out := make([]string, 0, len(paths)+1)
 
-	out = append(out, "vocab,prefix,alpha,accuracy")
-
 	for i, path := range paths {
 		fmt.Printf("\n%s\n\n", path)
 
@@ -63,7 +62,29 @@ func main() {
 
 		fmt.Printf("\n### AVERAGE ACCURACY\n%.2f\n", total*100)
 
-		row := fmt.Sprintf("%s,%s,%s,%.2f", stubs[i][0], stubs[i][1], stubs[i][2], total*100)
+		if len(out) == 0 {
+			row := "vocab,prefix,alpha,"
+
+			for _, r := range ratios {
+				row += fmt.Sprintf("%.2f,", r)
+			}
+
+			row += "average"
+
+			out = append(out, row)
+		}
+
+		row := fmt.Sprintf("%s,%s,%s,", stubs[i][0], stubs[i][1], stubs[i][2])
+
+		for _, accuracy := range accuracies {
+			if math.IsNaN(accuracy) {
+				accuracy = 0.0
+			}
+
+			row += fmt.Sprintf("%.2f,", accuracy)
+		}
+
+		row += fmt.Sprintf("%.2f", total)
 
 		out = append(out, row)
 	}
@@ -285,7 +306,7 @@ func walkResults() ([]string, error) {
 func walkResultsStatic() ([]string, [][3]string) {
 	vocabSizes := []int{8192, 16384, 32768, 50256, 100512}
 	prefixes := []string{"m", "mi"}
-	alphas := []string{"000", "010", "020", "030", "040", "050", "060", "070", "080", "090", "100"}
+	alphas := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0}
 
 	paths := make([]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
 	stubs := make([][3]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
@@ -293,9 +314,9 @@ func walkResultsStatic() ([]string, [][3]string) {
 	for _, vocab := range vocabSizes {
 		for _, prefix := range prefixes {
 			for _, alpha := range alphas {
-				path := fmt.Sprintf("data/wug_results/results/gpt2_%d_%s%s_babylm_v2/main/zero_shot/causal/wug/wug_adj_nominalization/predictions.json", vocab, prefix, alpha)
+				path := fmt.Sprintf("data/wug_results/results/gpt2_%d_%s%s_babylm_v2/main/zero_shot/causal/wug/wug_adj_nominalization/predictions.json", vocab, prefix, fmt.Sprintf("%03d", int(alpha*100)))
 
-				stub := [3]string{strconv.Itoa(vocab), prefix, alpha}
+				stub := [3]string{strconv.Itoa(vocab), prefix, fmt.Sprintf("%.2f", alpha)}
 
 				paths = append(paths, path)
 				stubs = append(stubs, stub)
