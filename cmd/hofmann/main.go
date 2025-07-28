@@ -57,12 +57,24 @@ func babyLM() {
 
 		results, deviations := againstGold(path, [][]string{able[:], ish[:], ive[:], ous[:]}, []float64{-1}, 1) // set group size 12 to average across prompts per nonce adjective
 
-		for _, v := range results {
-			fmt.Printf(",%.3f", v[0])
+		for _, values := range results {
+			v := values[0]
+
+			if math.IsNaN(v) {
+				v = 0
+			}
+
+			fmt.Printf(",%.3f", v)
 		}
 
-		for _, v := range deviations {
-			fmt.Printf(",%.3f", v[0])
+		for _, values := range deviations {
+			v := values[0]
+
+			if math.IsNaN(v) {
+				v = 0
+			}
+
+			fmt.Printf(",%.3f", v)
 		}
 
 		fmt.Println()
@@ -98,7 +110,11 @@ func babyLM2() {
 		results, _ := againstGold(path, [][]string{nonce}, columns, 1) // set group size 12 to average across prompts per nonce adjective
 
 		for _, v := range results[len(results)-1] {
-			fmt.Printf(",%.2f", v)
+			if math.IsNaN(v) {
+				v = 0
+			}
+
+			fmt.Printf(",%.3f", v)
 		}
 
 		fmt.Println()
