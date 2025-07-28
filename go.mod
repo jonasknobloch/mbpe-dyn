@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/dlclark/regexp2 v1.11.5
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/image v0.24.0
 	gonum.org/v1/gonum v0.15.1
 	gonum.org/v1/plot v0.15.0

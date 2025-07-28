@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"golang.org/x/exp/constraints"
 	"os"
-	"sort"
+	"slices"
 )
 
 func fromJSON(name string, data interface{}) error {
@@ -24,24 +25,34 @@ func fromJSON(name string, data interface{}) error {
 	return nil
 }
 
-func getKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
+func getKeys[K constraints.Ordered, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
 
 	for k := range m {
 		keys = append(keys, k)
 	}
 
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	return keys
 }
 
-func toSet(slice []string) map[string]struct{} {
-	s := make(map[string]struct{}, len(slice))
+func toSet[T comparable](slice []T) map[T]struct{} {
+	s := make(map[T]struct{}, len(slice))
 
 	for _, v := range slice {
 		s[v] = struct{}{}
 	}
 
 	return s
+}
+
+func average(s []float64) float64 {
+	sum := 0.0
+
+	for _, v := range s {
+		sum += v
+	}
+
+	return sum / float64(len(s))
 }

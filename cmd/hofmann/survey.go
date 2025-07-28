@@ -7,7 +7,7 @@ func surveyResponses(name string) ([]float64, []bool, []string, error) {
 		return nil, nil, nil, err
 	}
 
-	ratio := make([]float64, 200)
+	ratios := make([]float64, 200)
 	binary := make([]bool, 200)
 
 	keys := getKeys(data)
@@ -34,9 +34,9 @@ func surveyResponses(name string) ([]float64, []bool, []string, error) {
 			ness += 1
 		}
 
-		ratio[i] = float64(ity) / float64(ity+ness) // 1.0 for all "ity"
-		binary[i] = ratio[i] > 0.5                  // true for "ity"; false for "ness"
+		ratios[i] = float64(ity) / float64(ity+ness) // 1.0 for all "ity"
+		binary[i] = ratios[i] > 0.5                  // true for "ity"; false for "ness"
 	}
 
-	return ratio, binary, keys, nil
+	return ratios, binary, keys, nil
 }
