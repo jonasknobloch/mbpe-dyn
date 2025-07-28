@@ -8,8 +8,16 @@ import (
 	"sync"
 )
 
+func FromFile(name string, callback func(scanner *bufio.Scanner) error) error {
+	return fromFile(name, callback)
+}
+
 func ToFile(name string, callback func(writer *bufio.Writer) error) error {
 	return toFile(name, callback)
+}
+
+func FromJSON(name string, data interface{}) error {
+	return fromJSON(name, data)
 }
 
 func ReadTsv(name string, callback func([]string) error) error {

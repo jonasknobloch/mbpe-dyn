@@ -7,11 +7,8 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
-	"path/filepath"
+	mbpe "mbpe-dyn"
 	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -41,7 +38,7 @@ func main() {
 		ratios = r
 	}
 
-	paths, stubs := walkResultsStatic()
+	paths, stubs := mbpe.WalkResultsStatic("data/wug_results/results/gpt2_%d_%s%s_babylm_v2/main/zero_shot/causal/wug/wug_adj_nominalization/predictions.json")
 
 	out := make([]string, 0, len(paths)+1)
 
@@ -100,7 +97,7 @@ func loadSamples(name string) ([]Sample, []float64, error) {
 	samples := make([]Sample, 0, 200)
 	ratios := make(map[float64]struct{})
 
-	if err := fromFile(name, func(scanner *bufio.Scanner) error {
+	if err := mbpe.FromFile(name, func(scanner *bufio.Scanner) error {
 		for scanner.Scan() {
 			line := scanner.Text()
 
@@ -153,7 +150,7 @@ func evalPredictions(samples []Sample, ratios []float64, name string) ([]float64
 
 	results := Results{}
 
-	if err := fromJSON(name, &results); err != nil {
+	if err := mbpe.FromJSON(name, &results); err != nil {
 		return nil, 0, err
 	}
 
@@ -232,97 +229,4 @@ func evalPredictions(samples []Sample, ratios []float64, name string) ([]float64
 	average := float64(totalPositives) / float64(totalPositives+totalNegatives)
 
 	return accuracies, average, nil
-}
-
-func fromFile(name string, callback func(scanner *bufio.Scanner) error) error {
-	file, err := os.Open(name)
-
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	if err := callback(scanner); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func fromJSON(name string, data interface{}) error {
-	file, err := os.Open(name)
-
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-
-	if err := decoder.Decode(data); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func mapToSortedSlice(m map[float64]struct{}) []float64 {
-	s := make([]float64, 0, len(m))
-
-	for k := range m {
-		s = append(s, k)
-	}
-
-	sort.Sort(sort.Reverse(sort.Float64Slice(s)))
-
-	return s
-}
-
-func walkResults() ([]string, error) {
-	root := "data/wug_results/results"
-	match := "wug_adj_nominalization/predictions.json"
-
-	paths := make([]string, 0)
-
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && strings.Contains(path, match) {
-			paths = append(paths, path)
-		}
-
-		return nil
-	})
-
-	return paths, err
-}
-
-func walkResultsStatic() ([]string, [][3]string) {
-	vocabSizes := []int{8192, 16384, 32768, 50256, 100512}
-	prefixes := []string{"m", "mi"}
-	alphas := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0}
-
-	paths := make([]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
-	stubs := make([][3]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
-
-	for _, vocab := range vocabSizes {
-		for _, prefix := range prefixes {
-			for _, alpha := range alphas {
-				path := fmt.Sprintf("data/wug_results/results/gpt2_%d_%s%s_babylm_v2/main/zero_shot/causal/wug/wug_adj_nominalization/predictions.json", vocab, prefix, fmt.Sprintf("%03d", int(alpha*100)))
-
-				stub := [3]string{strconv.Itoa(vocab), prefix, fmt.Sprintf("%.2f", alpha)}
-
-				paths = append(paths, path)
-				stubs = append(stubs, stub)
-			}
-		}
-	}
-
-	return paths, stubs
 }
