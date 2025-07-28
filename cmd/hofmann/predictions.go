@@ -164,48 +164,11 @@ func cumulatePredictions2(predictions [][2]Entry, groupSize int) ([]float64, []b
 		sumRightNorm := sumRight / float64(groupSize)
 
 		ratios[i] = math.Exp(sumLeftNorm) / (math.Exp(sumLeftNorm) + math.Exp(sumRightNorm))
-		// binary[i] = sumLeftNorm > sumRightNorm
-		binary[i] = left > right
+		binary[i] = sumLeftNorm > sumRightNorm // binary[i] = left > right
 	}
 
 	return ratios, binary
 }
-
-// func cumulatePredictions(predictions [][][2]Entry) ([]float64, []bool) {
-// 	ratios := make([]float64, len(predictions))
-// 	binary := make([]bool, len(predictions))
-//
-// 	for i, pairs := range predictions {
-// 		sumLeft := 0.0
-// 		sumRight := 0.0
-//
-// 		left := 0
-// 		right := 0
-//
-// 		for _, pair := range pairs {
-// 			a, b := evalPair(pair)
-//
-// 			sumLeft += a
-// 			sumRight += b
-//
-// 			if a > b { // smaller absolute (neg log prob)
-// 				left++
-// 			} else {
-// 				right++
-// 			}
-// 		}
-//
-// 		sumLeftNorm := sumLeft / float64(len(pairs))
-// 		sumRightNorm := sumRight / float64(len(pairs))
-//
-// 		ratios[i] = math.Exp(sumLeftNorm) / (math.Exp(sumLeftNorm) + math.Exp(sumRightNorm))
-// 		// binary[i] = left > right
-// 		// binary[i] = left >= right
-// 		binary[i] = sumLeft > sumRight
-// 	}
-//
-// 	return ratios, binary
-// }
 
 func evalPair(pair [2]Entry) (float64, float64) {
 	sumLeft := 0.0
