@@ -46,13 +46,3 @@ func toSet[T comparable](slice []T) map[T]struct{} {
 
 	return s
 }
-
-func average(s []float64) float64 {
-	sum := 0.0
-
-	for _, v := range s {
-		sum += v
-	}
-
-	return sum / float64(len(s))
-}

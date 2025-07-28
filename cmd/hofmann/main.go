@@ -5,11 +5,13 @@ import (
 	"log"
 	"math"
 	"slices"
+	"strconv"
 )
 
 func main() {
-	// paper()
-	babyLM()
+	paper()
+	// babyLM()
+	// babyLM2()
 }
 
 func paper() {
@@ -21,7 +23,53 @@ func paper() {
 	figure5b()
 }
 
+func walkResultsStatic(format string) ([]string, [][3]string) {
+	vocabSizes := []int{8192, 16384, 32768, 50256, 100512}
+	prefixes := []string{"m", "mi"}
+	alphas := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0}
+
+	paths := make([]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
+	stubs := make([][3]string, 0, len(vocabSizes)*len(prefixes)*len(alphas))
+
+	for _, vocab := range vocabSizes {
+		for _, prefix := range prefixes {
+			for _, alpha := range alphas {
+				path := fmt.Sprintf(format, vocab, prefix, fmt.Sprintf("%03d", int(alpha*100)))
+
+				stub := [3]string{strconv.Itoa(vocab), prefix, fmt.Sprintf("%.2f", alpha)}
+
+				paths = append(paths, path)
+				stubs = append(stubs, stub)
+			}
+		}
+	}
+
+	return paths, stubs
+}
+
 func babyLM() {
+	paths, stubs := walkResultsStatic("data/wug_results/out/gpt2_%d_%s%s_babylm_v2_ity_ness_nonce.json")
+
+	fmt.Printf("vocab,prefix,alpha,able,ish,ive,ous,able_err,ish_err,ive_err,ous_err\n")
+
+	for i, path := range paths {
+		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
+
+		results, deviations := againstGold(path, [][]string{able[:], ish[:], ive[:], ous[:]}, []float64{-1}, 1) // set group size 12 to average across prompts per nonce adjective
+
+		for _, v := range results {
+			fmt.Printf(",%.3f", v[0])
+		}
+
+		for _, v := range deviations {
+			fmt.Printf(",%.3f", v[0])
+		}
+
+		fmt.Println()
+	}
+}
+
+func babyLM2() {
 	paths, stubs := walkResultsStatic("data/wug_results/out/gpt2_%d_%s%s_babylm_v2_ity_ness_nonce.json")
 
 	ratios, _, _, _ := surveyResponses("data/wug_results/survey_responses.json")
@@ -30,87 +78,34 @@ func babyLM() {
 
 	slices.Reverse(columns)
 
+	columns = append(columns, -1)
+
 	fmt.Printf("vocab,prefix,alpha,")
 
 	for _, c := range columns {
+		if c == -1 {
+			fmt.Println("average")
+
+			continue
+		}
+
 		fmt.Printf("%.2f,", c)
 	}
-
-	fmt.Println("average")
 
 	for i, path := range paths {
 		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
 
-		results, _ := againstGold2(path, columns, 1) // set group size 12 to average across prompts per nonce adjective
+		results, _ := againstGold(path, [][]string{nonce}, columns, 1) // set group size 12 to average across prompts per nonce adjective
 
-		for _, v := range results {
+		for _, v := range results[len(results)-1] {
 			fmt.Printf(",%.2f", v)
 		}
 
-		// for _, v := range deviations {
-		// 	fmt.Printf(",%.3f", v)
-		// }
-
-		fmt.Printf(",%.2f\n", average(results))
+		fmt.Println()
 	}
 }
 
-func againstGold(name string, groupSize int) ([]float64, []float64) {
-	ratiosGold, binaryGold, keys, err := surveyResponses("data/wug_results/survey_responses.json")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	predictions, err := processPredictions(name)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ratios, binary := evalPredictions(predictions, groupSize)
-
-	groups := len(binary) / len(binaryGold)
-
-	r := make([]float64, 0)
-	e := make([]float64, 0)
-
-	for _, adj := range [][]string{able[:], ish[:], ive[:], ous[:]} {
-		p := 0
-		n := 0
-
-		totalError := 0.0
-
-		allowed := toSet(adj)
-
-		for i, key := range keys {
-			if key != nonce[i] {
-				panic("unexpected nonce adjective: " + key)
-			}
-
-			if _, ok := allowed[key]; !ok {
-				continue
-			}
-
-			for j := 0; j < groups; j++ {
-				if binary[(i*groups)+j] == binaryGold[i] {
-					p += 1
-				} else {
-					n += 1
-				}
-
-				totalError += math.Abs(ratios[(i*groups)+j] - ratiosGold[i])
-			}
-		}
-
-		r = append(r, float64(p)/float64(p+n))
-		e = append(e, totalError/float64(p+n))
-	}
-
-	return r, e
-}
-
-func againstGold2(name string, ratios []float64, groupSize int) ([]float64, []float64) {
+func againstGold(name string, adjectives [][]string, ratios []float64, groupSize int) ([][]float64, [][]float64) {
 	ratiosGold, binaryGold, keys, err := surveyResponses("data/wug_results/survey_responses.json")
 
 	if err != nil {
@@ -127,47 +122,61 @@ func againstGold2(name string, ratios []float64, groupSize int) ([]float64, []fl
 
 	groups := len(binaryPred) / len(binaryGold)
 
-	r := make([]float64, 0)
-	e := make([]float64, 0)
+	r := make([][]float64, 0)
+	e := make([][]float64, 0)
 
-	for _, ratio := range ratios {
-		p := 0
-		n := 0
+	for _, adj := range adjectives {
+		acc := make([]float64, 0)
+		dev := make([]float64, 0)
 
-		totalError := 0.0
+		allowed := toSet(adj)
 
-		for i, key := range keys {
-			if key != nonce[i] {
-				panic("unexpected nonce adjective: " + key)
-			}
+		for _, ratio := range ratios {
+			p := 0
+			n := 0
 
-			if ratiosGold[i] != ratio {
-				continue
-			}
+			totalError := 0.0
 
-			for j := 0; j < groups; j++ {
-				if binaryPred[(i*groups)+j] == binaryGold[i] {
-					p += 1
-				} else {
-					n += 1
+			for i, key := range keys {
+				if key != nonce[i] {
+					panic("unexpected nonce adjective: " + key)
 				}
 
-				totalError += math.Abs(ratiosPred[(i*groups)+j] - ratiosGold[i])
+				if _, ok := allowed[key]; !ok {
+					continue
+				}
+
+				if ratio != -1 && ratiosGold[i] != ratio {
+					continue
+				}
+
+				for j := 0; j < groups; j++ {
+					if binaryPred[(i*groups)+j] == binaryGold[i] {
+						p += 1
+					} else {
+						n += 1
+					}
+
+					totalError += math.Abs(ratiosPred[(i*groups)+j] - ratiosGold[i])
+				}
 			}
+
+			acc = append(acc, float64(p)/float64(p+n))
+			dev = append(dev, totalError/float64(p+n))
 		}
 
-		r = append(r, float64(p)/float64(p+n))
-		e = append(e, totalError/float64(p+n))
+		r = append(r, acc)
+		e = append(e, dev)
 	}
 
 	return r, e
 }
 
 func table4() {
-	acc, _ := againstGold("data/wug_results/gptj_predictions_nonce.json", 1)
+	acc, _ := againstGold("data/wug_results/gptj_predictions_nonce.json", [][]string{able[:], ish[:], ive[:], ous[:]}, []float64{-1}, 1)
 
 	for _, v := range acc {
-		fmt.Printf("%.3f\n", v)
+		fmt.Printf("%.3f\n", v[0])
 	}
 
 	return
