@@ -377,7 +377,7 @@ func bar(name string) (float64, float64) {
 	totalError := 0.0
 
 	for i, base := range bases {
-		if bin[i] == goldBin[base] { // TODO != seems to work better ?!
+		if bin[i] != goldBin[base] { // TODO != seems to work better ?!
 			pos++
 		} else {
 			neg++
@@ -391,7 +391,7 @@ func bar(name string) (float64, float64) {
 	acc := float64(pos) / float64(pos+neg)
 	avgErr := totalError / float64(len(bases))
 
-	return acc, avgErr
+	return acc, 1 - avgErr
 }
 
 type Entry struct {
