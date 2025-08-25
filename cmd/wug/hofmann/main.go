@@ -27,12 +27,12 @@ func paper() {
 func babyLM() {
 	paths, stubs := mbpe.WalkResultsStatic("data/wug_results/out/gpt2_%d_%s%s_babylm_v2_ity_ness_nonce.json")
 
-	fmt.Printf("vocab,prefix,alpha,able,ish,ive,ous,able_err,ish_err,ive_err,ous_err\n")
+	fmt.Printf("vocab,prefix,alpha,able,ish,ive,ous,all,able_err,ish_err,ive_err,ous_err,all_err\n")
 
 	for i, path := range paths {
 		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
 
-		results, deviations := againstGold(path, [][]string{nonce.Able[:], nonce.Ish[:], nonce.Ive[:], nonce.Ous[:]}, []float64{-1}, 1) // set group size 12 to average across prompts per nonce adjective
+		results, deviations := againstGold(path, [][]string{nonce.Able[:], nonce.Ish[:], nonce.Ive[:], nonce.Ous[:], nonce.All}, []float64{-1}, 1) // set group size 12 to average across prompts per nonce adjective
 
 		for _, values := range results {
 			v := values[0]
@@ -73,7 +73,7 @@ func babyLM2() {
 
 	for _, c := range columns {
 		if c == -1 {
-			fmt.Println("average")
+			fmt.Printf("avg,")
 
 			continue
 		}
@@ -81,12 +81,30 @@ func babyLM2() {
 		fmt.Printf("%.2f,", c)
 	}
 
+	for _, c := range columns {
+		if c == -1 {
+			fmt.Println("avg_err")
+
+			continue
+		}
+
+		fmt.Printf("%.2f_err,", c)
+	}
+
 	for i, path := range paths {
 		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
 
-		results, _ := againstGold(path, [][]string{nonce.All}, columns, 1) // set group size 12 to average across prompts per nonce adjective
+		results, deviation := againstGold(path, [][]string{nonce.All}, columns, 1) // set group size 12 to average across prompts per nonce adjective
 
 		for _, v := range results[len(results)-1] {
+			if math.IsNaN(v) {
+				v = 0
+			}
+
+			fmt.Printf(",%.2f", v)
+		}
+
+		for _, v := range deviation[len(deviation)-1] {
 			if math.IsNaN(v) {
 				v = 0
 			}
