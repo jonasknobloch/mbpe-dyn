@@ -129,7 +129,7 @@ func flattenPredictions(predictions [][][2]Entry) [][2]Entry {
 	return r
 }
 
-func cumulatePredictions(predictions [][2]Entry, groupSize int) ([]float64, []bool) {
+func cumulatePredictions(predictions [][2]Entry, groupSize int, evalPair func(pair [2]Entry) (float64, float64)) ([]float64, []bool) {
 	if len(predictions)%groupSize != 0 {
 		panic("unexpected group size")
 	}
@@ -159,13 +159,17 @@ func cumulatePredictions(predictions [][2]Entry, groupSize int) ([]float64, []bo
 			} else {
 				right++
 			}
+
+			if a > b {
+				binary[i] = true // TODO backported bug to match previous results
+			}
 		}
 
 		sumLeftNorm := sumLeft / float64(groupSize)
 		sumRightNorm := sumRight / float64(groupSize)
 
 		ratios[i] = math.Exp(sumLeftNorm) / (math.Exp(sumLeftNorm) + math.Exp(sumRightNorm))
-		binary[i] = sumLeftNorm > sumRightNorm // binary[i] = left > right
+		// binary[i] = sumLeftNorm > sumRightNorm // binary[i] = left > right
 	}
 
 	return ratios, binary
@@ -181,6 +185,29 @@ func evalPair(pair [2]Entry) (float64, float64) {
 
 	for i := 0; i < len(pair[1].tokens); i++ {
 		sumRight += pair[1].logProbs[i]
+	}
+
+	return sumLeft, sumRight
+}
+
+func evalPairDiff(pair [2]Entry) (float64, float64) {
+	sumLeft := 0.0
+	sumRight := 0.0
+
+	for i, v := range pair[0].logProbs {
+		if (i < len(pair[1].tokens)) && (pair[0].tokens[i] == pair[1].tokens[i]) {
+			continue
+		}
+
+		sumLeft += v
+	}
+
+	for i, v := range pair[1].logProbs {
+		if (i < len(pair[0].tokens)) && (pair[1].tokens[i] == pair[0].tokens[i]) {
+			continue
+		}
+
+		sumRight += v
 	}
 
 	return sumLeft, sumRight
@@ -206,6 +233,37 @@ func evalPairAvg(pair [2]Entry) (float64, float64) {
 	return sumLeft / float64(m), sumRight / float64(n)
 }
 
+func evalPairAvgDiff(pair [2]Entry) (float64, float64) {
+	sumLeft := 0.0
+	sumRight := 0.0
+
+	m := 0
+	n := 0
+
+	for i, v := range pair[0].logProbs {
+		if (i < len(pair[1].tokens)) && (pair[0].tokens[i] == pair[1].tokens[i]) {
+			continue
+		}
+
+		sumLeft += v
+		m++
+	}
+
+	for i, v := range pair[1].logProbs {
+		if (i < len(pair[0].tokens)) && (pair[1].tokens[i] == pair[0].tokens[i]) {
+			continue
+		}
+
+		sumRight += v
+		n++
+	}
+
+	avgLeft := sumLeft / float64(m)
+	avgRight := sumRight / float64(n)
+
+	return avgLeft, avgRight
+}
+
 func evalPredictions(predictions Predictions, groupSize int) ([]float64, []bool) {
-	return cumulatePredictions(flattenPredictions(predictionsToSlice(predictions)), groupSize)
+	return cumulatePredictions(flattenPredictions(predictionsToSlice(predictions)), groupSize, evalPairAvgDiff)
 }

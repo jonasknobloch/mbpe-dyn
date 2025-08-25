@@ -6,13 +6,12 @@ import (
 	"math"
 	mbpe "mbpe-dyn"
 	"mbpe-dyn/cmd/wug/nonce"
-	"slices"
 )
 
 func main() {
-	paper()
+	// paper()
 	// babyLM()
-	// babyLM2()
+	babyLM2()
 }
 
 func paper() {
@@ -61,11 +60,15 @@ func babyLM() {
 func babyLM2() {
 	paths, stubs := mbpe.WalkResultsStatic("data/wug_results/out/gpt2_%d_%s%s_babylm_v2_ity_ness_nonce.json")
 
-	ratios, _, _, _ := surveyResponses("data/wug_results/survey_responses.json")
+	// ratios, _, _, _ := surveyResponses("data/wug_results/survey_responses.json")
+	//
+	// columns := getKeys(toSet(ratios))
+	//
+	// slices.Reverse(columns)
+	//
+	// columns = append(columns, -1)
 
-	columns := getKeys(toSet(ratios))
-
-	slices.Reverse(columns)
+	columns := make([]float64, 0)
 
 	columns = append(columns, -1)
 
@@ -84,7 +87,7 @@ func babyLM2() {
 	for i, path := range paths {
 		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
 
-		results, _ := againstGold(path, [][]string{nonce.All}, columns, 1) // set group size 12 to average across prompts per nonce adjective
+		results, _ := againstGold(path, [][]string{nonce.All}, columns, 12) // set group size 12 to average across prompts per nonce adjective
 
 		for _, v := range results[len(results)-1] {
 			if math.IsNaN(v) {
