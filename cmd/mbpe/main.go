@@ -136,7 +136,7 @@ func eval() {
 
 	data := []mbpe.PlotData{s00, s01, s02, s03, s04, sBase}
 
-	mbpe.Plot(data, [2]float64{1.00, 1.2}, [2]float64{0.75, 0.90}, "Fertility", "Merge Layer")
+	mbpe.Plot(data, [2]float64{1.00, 1.6}, [2]float64{0.7, 1.0}, "Fertility", "Merge Layer")
 
 	fmt.Printf(md00)
 	fmt.Println()

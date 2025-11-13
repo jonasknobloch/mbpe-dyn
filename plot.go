@@ -110,7 +110,15 @@ func Plot(data []PlotData, rangeX, rangeY [2]float64, labelX, labelY string) {
 		drawScatter(s)
 	}
 
-	if err := p.Save(8*vg.Inch, 5*vg.Inch, "assets/plot.svg"); err != nil {
+	if err := p.Save(5*vg.Inch, 3*vg.Inch, "assets/plot.svg"); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := p.Save(5*vg.Inch, 3*vg.Inch, "assets/plot.pdf"); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := p.Save(5*vg.Inch, 3*vg.Inch, "assets/plot.png"); err != nil {
 		log.Fatal(err)
 	}
 }
