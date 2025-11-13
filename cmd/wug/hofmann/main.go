@@ -27,34 +27,40 @@ func paper() {
 func babyLM() {
 	paths, stubs := mbpe.WalkResultsStatic("data/wug_results/out/gpt2_%d_%s%s_babylm_v2_ity_ness_nonce.json")
 
-	fmt.Printf("vocab,prefix,alpha,able,ish,ive,ous,all,able_err,ish_err,ive_err,ous_err,all_err\n")
+	fmt.Printf("vocab,prefix,alpha,suffix,accuracy,error\n")
 
 	for i, path := range paths {
-		fmt.Printf("%s,%s,%s", stubs[i][0], stubs[i][1], stubs[i][2])
+		results, deviations := againstGold(path, [][]string{nonce.Able[:], nonce.Ish[:], nonce.Ive[:], nonce.Ous[:], nonce.All}, []float64{-1}, 12) // set group size 12 to average across prompts per nonce adjective
 
-		results, deviations := againstGold(path, [][]string{nonce.Able[:], nonce.Ish[:], nonce.Ive[:], nonce.Ous[:], nonce.All}, []float64{-1}, 1) // set group size 12 to average across prompts per nonce adjective
+		for j, values := range results {
+			a := values[0]
+			b := deviations[j][0]
 
-		for _, values := range results {
-			v := values[0]
-
-			if math.IsNaN(v) {
-				v = 0
+			if math.IsNaN(a) {
+				a = 0
 			}
 
-			fmt.Printf(",%.2f", v)
-		}
-
-		for _, values := range deviations {
-			v := values[0]
-
-			if math.IsNaN(v) {
-				v = 0
+			if math.IsNaN(b) {
+				b = 0
 			}
 
-			fmt.Printf(",%.2f", v)
-		}
+			s := ""
 
-		fmt.Println()
+			switch j {
+			case 0:
+				s = "able"
+			case 1:
+				s = "ish"
+			case 2:
+				s = "ive"
+			case 3:
+				s = "ous"
+			default:
+				s = "all"
+			}
+
+			fmt.Printf("%s,%s,%s,%s,%.4f,%.4f\n", stubs[i][0], stubs[i][1], stubs[i][2], s, a, b)
+		}
 	}
 }
 
